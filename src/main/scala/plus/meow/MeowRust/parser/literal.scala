@@ -20,26 +20,26 @@ object Literal extends RegexParsers {
     | "\\0" ^^ { _ => '\0' }
   )
   // TODO: support UNICODE_ESCAPE
-  lazy val CHAR_LITERAL: Parser[Char] = (
+  lazy val CHAR_LITERAL: Parser[CharLiteral] = (
     "'" ~> (
         """[^'\\\n\r\t]""".r ^^ { _.head }
       | QUOTE_ESCAPE
       | ASCII_ESCAPE
     ) <~ "'"
-  )
+  ) ^^ { CharLiteral(_) }
 
   // TODO: support STRING_CONTINUE
-  lazy val STRING_LITERAL: Parser[String] = (
+  lazy val STRING_LITERAL: Parser[StrLiteral] = (
     "\"" ~> ((
         """[^\"\\\n]""".r ^^ { _.head }
       | QUOTE_ESCAPE
       | ASCII_ESCAPE
-    )*) <~ "\"" ^^ { _.mkString }
-  )
+    )*) <~ "\""
+  ) ^^ { a => StrLiteral(a.mkString) }
 
-  lazy val RAW_STRING_LITERAL: Parser[String] = (
+  lazy val RAW_STRING_LITERAL: Parser[StrLiteral] = (
     "r" ~> RAW_STRING_CONTENT
-  )
+  ) ^^ { StrLiteral(_) }
 
   lazy val RAW_STRING_CONTENT: Parser[String] = (
       "\"" ~> ("""\\\n|[^\n]""".r *) <~ "\"" ^^ { _.mkString }
@@ -130,8 +130,16 @@ object Literal extends RegexParsers {
 
   lazy val FLOAT_SUFFIX: Parser[String] = ("f32" | "f64")
 
-  lazy val BOOLEAN_LITERAL: Parser[Boolean] = (
+  lazy val BOOLEAN_LITERAL: Parser[BoolLiteral] = (
       "true" ^^ { (_) => true }
     | "false" ^^ { (_) => false }
+  ) ^^ { BoolLiteral }
+
+  lazy val LITERAL: Parser[Literal] = (
+      CHAR_LITERAL
+    | STRING_LITERAL
+    | RAW_STRING_LITERAL
+    | INTEGER_LITERAL
+    | FLOAT_LITERAL
   )
 }
