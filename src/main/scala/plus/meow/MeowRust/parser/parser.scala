@@ -1,5 +1,5 @@
 package plus.meow.MeowRust.parser
 
-object Parser {
-  def parse = Literal.LITERAL
+object Parser extends Literal {
+  def parse = LITERAL
 }

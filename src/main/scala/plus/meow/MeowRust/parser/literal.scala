@@ -1,10 +1,11 @@
 package plus.meow.MeowRust.parser
 
 import plus.meow.MeowRust.grammar._
+import plus.meow.MeowRust.grammar
 import com.codecommit.gll._
 import com.codecommit.gll.Parsers._
 
-object Literal extends RegexParsers {
+trait Literal extends RegexParsers {
   override val skipWhitespace: Boolean = false
 
   lazy val QUOTE_ESCAPE: Parser[Char] = (
@@ -135,7 +136,7 @@ object Literal extends RegexParsers {
     | "false" ^^ { (_) => false }
   ) ^^ { BoolLiteral }
 
-  lazy val LITERAL: Parser[Literal] = (
+  lazy val LITERAL: Parser[grammar.Literal] = (
       CHAR_LITERAL
     | STRING_LITERAL
     | RAW_STRING_LITERAL
