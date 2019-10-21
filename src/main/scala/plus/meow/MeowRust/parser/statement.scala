@@ -41,8 +41,8 @@ trait Statement extends RegexParsers with Literal with Pattern with Identifier w
       BLOCK_EXPRESSION // We don't support unsafe context
     | LOOP_EXPRESSION
     | IF_EXPRESSION
-    // | IF_LET_EXPRESSION // TODO: impl
-    // | MATCH_EXPRESSION // TODO: impl
+    | IF_LET_EXPRESSION
+    | MATCH_EXPRESSION
   )
 
   lazy val LITERAL_EXPRESSION: Parser[Any] = LITERAL
@@ -148,7 +148,7 @@ trait Statement extends RegexParsers with Literal with Pattern with Identifier w
   lazy val LOOP_EXPRESSION = (LOOP_LABEL?) ~ (
       "loop" ~> BLOCK_EXPRESSION
     | "while" ~> EXPRESSION ~ BLOCK_EXPRESSION
-    // TODO: support while let
+    | ("while" ~ "let") ~> MATCH_ARM_PATTERNS <~ "=" ~ EXPRESSION ~ BLOCK_EXPRESSION
     | "for" ~> PATTERN <~ "in" ~ EXPRESSION ~ BLOCK_EXPRESSION
   )
   lazy val LOOP_LABEL = LIFETIME_OR_LABEL <~ ":"
@@ -165,8 +165,15 @@ trait Statement extends RegexParsers with Literal with Pattern with Identifier w
   )
 
   lazy val IF_EXPRESSION: Parser[Any] = "if" ~> EXPRESSION ~ BLOCK_EXPRESSION ~ (ELSE_ARM?)
-  // TODO: support if let in else arm
   lazy val ELSE_ARM = "else" ~> (BLOCK_EXPRESSION | IF_EXPRESSION /* | IF_LET_EXPRESSION */)
+  lazy val IF_LET_EXPRESSION = ("if" ~ "let") ~> MATCH_ARM_PATTERNS <~ "=" ~ EXPRESSION ~ BLOCK_EXPRESSION ~(ELSE_ARM?)
+
+  lazy val MATCH_EXPRESSION = "match" ~> EXPRESSION <~ "{" ~ (MATCH_ARMS?) <~ "}"
+  lazy val MATCH_ARMS = (MATCH_ARM <~ "=>" ~ (
+    (BLOCK_EXPRESSION <~ (","?)) | EXPRESSION <~ ","
+  )*) ~ MATCH_ARM <~ "=>" ~ (BLOCK_EXPRESSION | EXPRESSION) <~ (","?)
+  lazy val MATCH_ARM = MATCH_ARM_PATTERNS ~ (("if" ~> EXPRESSION)?)
+  lazy val MATCH_ARM_PATTERNS = ("|"?) ~> PATTERN ~ (("|" ~> PATTERN)*)
 
   lazy val RETURN_EXPRESSION = "return" ~> EXPRESSION?
 }
