@@ -97,3 +97,6 @@ trait Label extends RegexParsers with Identifier {
 }
 
 // TODO: support comments
+
+// TODO: impl path
+trait Path extends RegexParsers

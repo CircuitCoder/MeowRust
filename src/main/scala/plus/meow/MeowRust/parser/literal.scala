@@ -93,6 +93,11 @@ trait Literal extends RegexParsers {
 
   lazy val DEC_LITERAL: Parser[BigInt] = RAW_DEC_LITERAL ^^ { BigInt(_) }
 
+  lazy val TUPLE_INDEX: Parser[BigInt] = (
+      "0"
+    | "[1-9][0-9]*"
+  ) ^^ { BigInt(_) }
+
   lazy val INTEGER_SUFFIX: Parser[String] = (
       "u8" | "u16" | "u32" | "u64" | "u128" | "usize"
     | "i8" | "i16" | "i32" | "i64" | "i128" | "isize"
