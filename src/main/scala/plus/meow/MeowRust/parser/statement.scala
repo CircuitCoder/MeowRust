@@ -4,19 +4,19 @@ import plus.meow.MeowRust.grammar._
 import plus.meow.MeowRust.grammar
 
 trait Statement extends RegexParsers with Literal with Pattern with Identifier with Label {
-  lazy val STATEMENT: Parser[Any] = (
-      ";"
+  lazy val STATEMENT: Parser[Stmt] = (
+      ";" ^^^ { EmptyStmt() }
     // | ITEM // TODO: impl
     | LET_STATEMENT
     | EXPRESSION_STATEMENT
   )
 
   // TODO: support type ascriptions
-  lazy val LET_STATEMENT: Parser[Any] = "let" ~> PATTERN ~ (("=" ~> EXPRESSION)?)
-  lazy val EXPRESSION_STATEMENT: Parser[Any] = (
+  lazy val LET_STATEMENT: Parser[LetStmt] = "let" ~> PATTERN ~ (("=" ~> EXPRESSION)?) ^^ LetStmt
+  lazy val EXPRESSION_STATEMENT: Parser[ExprStmt] = (
       EXPRESSION_WITHOUT_BLOCK <~ ";"
     | EXPRESSION_WITH_BLOCK
-  )
+  ) ^^ ExprStmt
 
   lazy val EXPRESSION: Parser[Expr] = EXPRESSION_WITH_BLOCK | EXPRESSION_WITHOUT_BLOCK
   lazy val EXPRESSION_WITHOUT_BLOCK: Parser[Expr] = (
