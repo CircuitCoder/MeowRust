@@ -1,6 +1,7 @@
 package plus.meow.MeowRust.parser
 import com.codecommit.gll.RegexParsers
 import plus.meow.MeowRust.grammar._
+import plus.meow.MeowRust.grammar
 
 trait Statement extends RegexParsers with Literal with Pattern with Identifier with Label {
   lazy val STATEMENT: Parser[Any] = (
@@ -147,7 +148,7 @@ trait Statement extends RegexParsers with Literal with Pattern with Identifier w
 
   // TODO: add type ascription ( -> TYPE BlockExpression
   lazy val CLOSURE_EXPRESSION = (("||" ^^^ { List() }) | "|" ~> CLOSURE_PARAMETERS <~ "|") ~ EXPRESSION ^^ ClosureExpr
-  lazy val CLOSURE_PARAMETERS: Parser[List[Any]] = CLOSURE_PARAM ~ (("," ~> CLOSURE_PARAM)*) <~ (","?) ^^ { _ :: _ }
+  lazy val CLOSURE_PARAMETERS: Parser[List[grammar.Pattern]] = CLOSURE_PARAM ~ (("," ~> CLOSURE_PARAM)*) <~ (","?) ^^ { _ :: _ }
   // TODO: add type ascription
   lazy val CLOSURE_PARAM = PATTERN
 
@@ -175,7 +176,7 @@ trait Statement extends RegexParsers with Literal with Pattern with Identifier w
   lazy val IF_LET_EXPRESSION: Parser[IfLetExpr] = (("if" ~ "let") ~> MATCH_ARM_PATTERNS <~ "=") ~ EXPRESSION ~ BLOCK_EXPRESSION ~(ELSE_ARM?) ^^ { IfLetExpr(_, _, _, _) }
 
   lazy val MATCH_EXPRESSION: Parser[MatchExpr] = ("match" ~> EXPRESSION <~ "{") ~ (MATCH_ARMS?) <~ "}" ^^ { (e, arms) => MatchExpr(e, arms getOrElse List()) }
-  val armParser = (spec: (List[Any], Option[Expr]), body: Expr) => MatchArm(spec._1, spec._2, body)
+  val armParser = (spec: (List[grammar.Pattern], Option[Expr]), body: Expr) => MatchArm(spec._1, spec._2, body)
   lazy val MATCH_ARMS: Parser[List[MatchArm]] = (
     (
       (MATCH_ARM <~ "=>") ~ ((BLOCK_EXPRESSION <~ (","?)) | (EXPRESSION <~ ",")) ^^ armParser)*
@@ -184,8 +185,8 @@ trait Statement extends RegexParsers with Literal with Pattern with Identifier w
     ) ^^ {
       _ :+ _
     }
-  lazy val MATCH_ARM: Parser[(List[Any], Option[Expr])] = MATCH_ARM_PATTERNS ~ (("if" ~> EXPRESSION)?) ^^ { (_, _) }
-  lazy val MATCH_ARM_PATTERNS: Parser[List[Any]] = ("|"?) ~> PATTERN ~ (("|" ~> PATTERN)*) ^^ { (e, l) => e :: l }
+  lazy val MATCH_ARM: Parser[(List[grammar.Pattern], Option[Expr])] = MATCH_ARM_PATTERNS ~ (("if" ~> EXPRESSION)?) ^^ { (_, _) }
+  lazy val MATCH_ARM_PATTERNS: Parser[List[grammar.Pattern]] = ("|"?) ~> PATTERN ~ (("|" ~> PATTERN)*) ^^ { (e, l) => e :: l }
 
   lazy val RETURN_EXPRESSION = "return" ~> (EXPRESSION?) ^^ { FlowCtrlExpr(Return(), None, _) }
 }

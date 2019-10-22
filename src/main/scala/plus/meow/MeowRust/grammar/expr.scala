@@ -54,8 +54,7 @@ case class CallExpr(recv: Expr, method: Option[String], params: List[Expr]) exte
 case class FieldExpr(owner: Expr, field: Expr) extends Expr
 case class ArrayIndexExpr(owner: Expr, index: Expr) extends Expr
 case class TupleIndexExpr(owner: Expr, index: BigInt) extends Expr
-// TODO: pattern
-case class ClosureExpr(params: List[Any], body: Expr) extends Expr
+case class ClosureExpr(params: List[Pattern], body: Expr) extends Expr
 case class FlowCtrlExpr(ctrl: FlowCtrl, label: Option[String], param: Option[Expr]) extends Expr
 case class RangeExpr(from: Option[Expr], to: Option[Expr], includeTo: Boolean) extends Expr
 
@@ -68,18 +67,14 @@ case class BinaryOpExpr(op: BinaryOp, lhs: Expr, rhs: Expr) extends Expr
 
 // Loops
 case class InftyLoopExpr(label: Option[String], body: Expr) extends Expr
-// TODO: pattern
-case class ForLoopExpr(label: Option[String], pat: Any, collection: Expr, body: Expr) extends Expr
+case class ForLoopExpr(label: Option[String], pat: Pattern, collection: Expr, body: Expr) extends Expr
 case class WhileExpr(label: Option[String], cond: Expr, body: Expr) extends Expr
-// TODO: pattern
-case class WhileLetExpr(label: Option[String], pat: List[Any], unwrapped: Expr, body: Expr) extends Expr
+case class WhileLetExpr(label: Option[String], pat: List[Pattern], unwrapped: Expr, body: Expr) extends Expr
 
 // Conditionals
 case class IfExpr(cond: Expr, body: Expr, otherwise: Option[Expr]) extends Expr
-// TODO: pattern
-case class IfLetExpr(pat: List[Any], unwrapped: Expr, body: Expr, otherwise: Option[Expr]) extends Expr
+case class IfLetExpr(pat: List[Pattern], unwrapped: Expr, body: Expr, otherwise: Option[Expr]) extends Expr
 
 // Matches
-// TODO: pattern
-case class MatchArm(pat: Any, guardCond: Option[Expr], body: Expr)
+case class MatchArm(pat: List[Pattern], guardCond: Option[Expr], body: Expr)
 case class MatchExpr(input: Expr, arms: List[MatchArm]) extends Expr
