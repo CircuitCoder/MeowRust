@@ -145,5 +145,6 @@ trait Literal extends SeparatedParsers {
     | RAW_STRING_LITERAL
     | INTEGER_LITERAL
     | FLOAT_LITERAL
+    | BOOLEAN_LITERAL
   )
 }
