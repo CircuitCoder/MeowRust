@@ -4,6 +4,7 @@ import com.codecommit.gll.LineStream
 import scala.io.Source
 import plus.meow.MeowRust.parser.Parser
 import com.codecommit.gll.Success
+import com.codecommit.gll.Failure
 
 /**
  * MeowRust compiler
@@ -14,8 +15,10 @@ import com.codecommit.gll.Success
  *     - For example, compare operators requires parentheses to specify associativity
  *  - Codegen: Derive(...)
  *  - Register: types, impls...
- *  - Resolve + Type-check - 1: Generate types for each expression. This also involves picking the most accurate trait impl
- *  - Disugar: Question marks, etc.
+ *  - Resolve + Type-check - 1: Generate types for each expression.
+ *       This also involves picking the most accurate trait impl,
+ *       and actually instantiate generic functions
+ *  - Disugar: Question marks, etc. Notably, compile matches \w exhaustiveness check
  *  - Type-check - 2: Checks if subtyping/conversion works. Insert implicit conversions
  *  - Target generation: Dump LLVM IR
  */
@@ -27,10 +30,16 @@ object Main extends App {
       println("Processing file " + file)
       val stream = LineStream(Source fromFile file)
 
-      val parsed = Parser.parse(stream)
-
-      if(parsed exists { _.isInstanceOf[Success[String]] }) {
-        for(Success(tree, _) <- parsed) { println(tree) }
+      // First parse-tree / error is with the intended precedence
+      val parsed = Parser.parse(stream).head
+      parsed match {
+        case Failure(data, _) => {
+          print("Error parsing " + file)
+          print(data)
+        }
+        case Success(tree, _) => {
+          print("Parser tree:\n" + tree)
+        }
       }
     }
   }
