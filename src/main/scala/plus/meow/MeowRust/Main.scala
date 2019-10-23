@@ -12,10 +12,12 @@ import com.codecommit.gll.Success
  *  - Parser
  *  - Disambiguation
  *     - For example, compare operators requires parentheses to specify associativity
- *  - Type-check - 1
- *  - Disugar
- *  - Type-check - 2
- *  - Codegen
+ *  - Codegen: Derive(...)
+ *  - Register: types, impls...
+ *  - Resolve + Type-check - 1: Generate types for each expression. This also involves picking the most accurate trait impl
+ *  - Disugar: Question marks, etc.
+ *  - Type-check - 2: Checks if subtyping/conversion works. Insert implicit conversions
+ *  - Target generation: Dump LLVM IR
  */
 
 
