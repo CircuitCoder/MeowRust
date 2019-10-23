@@ -1,1 +1,1 @@
-"space test" +4 * true
+1 - "space test" +4 * true - 10

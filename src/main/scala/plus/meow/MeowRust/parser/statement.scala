@@ -84,16 +84,19 @@ trait Statement extends RegexParsers with Literal with Pattern with Identifier w
 
   // TODO: precedence
   lazy val ARITHMETIC_OR_LOGICAL_EXPRESSION: Parser[BinaryOpExpr] = (
-      (EXPRESSION <~? "+") ~? EXPRESSION ^^ { (l, r) => BinaryOpExpr(Add(), l, r) }
-    | (EXPRESSION <~? "-") ~? EXPRESSION ^^ { (l, r) => BinaryOpExpr(Sub(), l, r) }
-    | (EXPRESSION <~? "*") ~? EXPRESSION ^^ { (l, r) => BinaryOpExpr(Mul(), l, r) }
-    | (EXPRESSION <~? "/") ~? EXPRESSION ^^ { (l, r) => BinaryOpExpr(Div(), l, r) }
-    | (EXPRESSION <~? "%") ~? EXPRESSION ^^ { (l, r) => BinaryOpExpr(Mod(), l, r) }
+      EXPRESSION ~? """\*|/|%""".r ~? EXPRESSION ^^ { (l, op, r) => {
+        val opt = op match {
+          case "*" => Mul()
+          case "/" => Div()
+          case _ => Mod()
+        }
+        BinaryOpExpr(opt, l, r)
+      }}
+    | EXPRESSION ~? """\+|-""".r ~? EXPRESSION ^^ { (l, op, r) => BinaryOpExpr(if(op == "+") Add() else Sub(), l, r) }
+    | EXPRESSION ~? """<<|>>""".r ~? EXPRESSION ^^ { (l, op, r) => BinaryOpExpr(if(op == "<<") BitwiseLShift() else BitwiseRShift(), l, r) }
     | (EXPRESSION <~? "&") ~? EXPRESSION ^^ { (l, r) => BinaryOpExpr(BitwiseAnd(), l, r) }
-    | (EXPRESSION <~? "|") ~? EXPRESSION ^^ { (l, r) => BinaryOpExpr(BitwiseOr(), l, r) }
     | (EXPRESSION <~? "^") ~? EXPRESSION ^^ { (l, r) => BinaryOpExpr(BitwiseXor(), l, r) }
-    | (EXPRESSION <~? "<<") ~? EXPRESSION ^^ { (l, r) => BinaryOpExpr(BitwiseLShift(), l, r) }
-    | (EXPRESSION <~? ">>") ~? EXPRESSION ^^ { (l, r) => BinaryOpExpr(BitwiseRShift(), l, r) }
+    | (EXPRESSION <~? "|") ~? EXPRESSION ^^ { (l, r) => BinaryOpExpr(BitwiseOr(), l, r) }
   )
 
   lazy val COMPARISION_EXPRESSION: Parser[BinaryOpExpr] = (
