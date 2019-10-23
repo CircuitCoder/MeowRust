@@ -14,7 +14,7 @@ trait Statement extends RegexParsers with Literal with Pattern with Identifier w
   // TODO: support type ascriptions
   lazy val LET_STATEMENT: Parser[LetStmt] = "let" ~> PATTERN ~ (("=" ~> EXPRESSION)?) ^^ LetStmt
   lazy val EXPRESSION_STATEMENT: Parser[ExprStmt] = (
-      EXPRESSION_WITHOUT_BLOCK <~ ";"
+      EXPRESSION_WITHOUT_BLOCK <~? ";"
     | EXPRESSION_WITH_BLOCK
   ) ^^ ExprStmt
 
@@ -49,10 +49,10 @@ trait Statement extends RegexParsers with Literal with Pattern with Identifier w
 
   lazy val LITERAL_EXPRESSION: Parser[LiteralExpr] = LITERAL ^^ { LiteralExpr(_) }
 
-  lazy val BLOCK_EXPRESSION: Parser[BlockExpr] = "{" ~> (STATEMENTS?) <~ "}" ^^ { (l) => BlockExpr(l getOrElse List()) }
+  lazy val BLOCK_EXPRESSION: Parser[BlockExpr] = "{" ~>? (STATEMENTS?) <~? "}" ^^ { (l) => BlockExpr(l getOrElse List()) }
   lazy val STATEMENTS: Parser[List[Any]] = (
       (STATEMENT+) // Type is ()
-    | (STATEMENT+) ~ EXPRESSION_WITHOUT_BLOCK ^^ { (s, e) => s :+ e } // Type is last expr
+    | (STATEMENT+) ~? EXPRESSION_WITHOUT_BLOCK ^^ { (s, e) => s :+ e } // Type is last expr
     | EXPRESSION_WITHOUT_BLOCK ^^ { List(_) } // Type is the expr
   )
 
@@ -70,44 +70,47 @@ trait Statement extends RegexParsers with Literal with Pattern with Identifier w
   )
 
   // TODO: maybe we need two borrow signs to override &&?
-  lazy val BORROW_EXPRESSION: Parser[BorrowExpr] = "&" ~> ("mut"?) ~ EXPRESSION ^^ { (mut, expr) => BorrowExpr(expr, mut.isDefined) }
-  lazy val DEREFERENCE_EXPRESSION: Parser[DerefExpr] = "*" ~> EXPRESSION ^^ { DerefExpr(_) }
-  lazy val ERROR_PROPAGATION_EXPRESSION: Parser[QuestionExpr] = EXPRESSION <~ "?" ^^ { QuestionExpr(_) }
+  lazy val BORROW_EXPRESSION: Parser[BorrowExpr] = (
+      "&" ~>? EXPRESSION ^^ { BorrowExpr(_, false) }
+    | "&" ~? "mut" ~>! EXPRESSION ^^ { BorrowExpr(_, false) }
+  )
+  lazy val DEREFERENCE_EXPRESSION: Parser[DerefExpr] = "*" ~>? EXPRESSION ^^ { DerefExpr(_) }
+  lazy val ERROR_PROPAGATION_EXPRESSION: Parser[QuestionExpr] = EXPRESSION <~? "?" ^^ { QuestionExpr(_) }
   // TODO: use partial applied functions....
   lazy val NEGATION_EXPRESSION: Parser[UnaryOpExpr] = (
-      "-" ~> EXPRESSION ^^ { UnaryOpExpr(Neg(), _) }
-    | "!" ~> EXPRESSION ^^ { UnaryOpExpr(LogicalNot(), _) }
+      "-" ~>? EXPRESSION ^^ { UnaryOpExpr(Neg(), _) }
+    | "!" ~>? EXPRESSION ^^ { UnaryOpExpr(LogicalNot(), _) }
   )
 
   // TODO: precedence
   lazy val ARITHMETIC_OR_LOGICAL_EXPRESSION: Parser[BinaryOpExpr] = (
-      (EXPRESSION <~ "+") ~ EXPRESSION ^^ { (l, r) => BinaryOpExpr(Add(), l, r) }
-    | (EXPRESSION <~ "-") ~ EXPRESSION ^^ { (l, r) => BinaryOpExpr(Sub(), l, r) }
-    | (EXPRESSION <~ "*") ~ EXPRESSION ^^ { (l, r) => BinaryOpExpr(Mul(), l, r) }
-    | (EXPRESSION <~ "/") ~ EXPRESSION ^^ { (l, r) => BinaryOpExpr(Div(), l, r) }
-    | (EXPRESSION <~ "%") ~ EXPRESSION ^^ { (l, r) => BinaryOpExpr(Mod(), l, r) }
-    | (EXPRESSION <~ "&") ~ EXPRESSION ^^ { (l, r) => BinaryOpExpr(BitwiseAnd(), l, r) }
-    | (EXPRESSION <~ "|") ~ EXPRESSION ^^ { (l, r) => BinaryOpExpr(BitwiseOr(), l, r) }
-    | (EXPRESSION <~ "^") ~ EXPRESSION ^^ { (l, r) => BinaryOpExpr(BitwiseXor(), l, r) }
-    | (EXPRESSION <~ "<<") ~ EXPRESSION ^^ { (l, r) => BinaryOpExpr(BitwiseLShift(), l, r) }
-    | (EXPRESSION <~ ">>") ~ EXPRESSION ^^ { (l, r) => BinaryOpExpr(BitwiseRShift(), l, r) }
+      (EXPRESSION <~? "+") ~? EXPRESSION ^^ { (l, r) => BinaryOpExpr(Add(), l, r) }
+    | (EXPRESSION <~? "-") ~? EXPRESSION ^^ { (l, r) => BinaryOpExpr(Sub(), l, r) }
+    | (EXPRESSION <~? "*") ~? EXPRESSION ^^ { (l, r) => BinaryOpExpr(Mul(), l, r) }
+    | (EXPRESSION <~? "/") ~? EXPRESSION ^^ { (l, r) => BinaryOpExpr(Div(), l, r) }
+    | (EXPRESSION <~? "%") ~? EXPRESSION ^^ { (l, r) => BinaryOpExpr(Mod(), l, r) }
+    | (EXPRESSION <~? "&") ~? EXPRESSION ^^ { (l, r) => BinaryOpExpr(BitwiseAnd(), l, r) }
+    | (EXPRESSION <~? "|") ~? EXPRESSION ^^ { (l, r) => BinaryOpExpr(BitwiseOr(), l, r) }
+    | (EXPRESSION <~? "^") ~? EXPRESSION ^^ { (l, r) => BinaryOpExpr(BitwiseXor(), l, r) }
+    | (EXPRESSION <~? "<<") ~? EXPRESSION ^^ { (l, r) => BinaryOpExpr(BitwiseLShift(), l, r) }
+    | (EXPRESSION <~? ">>") ~? EXPRESSION ^^ { (l, r) => BinaryOpExpr(BitwiseRShift(), l, r) }
   )
 
   lazy val COMPARISION_EXPRESSION: Parser[BinaryOpExpr] = (
-      (EXPRESSION <~ "==") ~ EXPRESSION ^^ { (l, r) => BinaryOpExpr(CmpEq(), l, r) }
-    | (EXPRESSION <~ "!=") ~ EXPRESSION ^^ { (l, r) => BinaryOpExpr(CmpNe(), l, r) }
-    | (EXPRESSION <~ ">") ~ EXPRESSION ^^ { (l, r) => BinaryOpExpr(CmpG(), l, r) }
-    | (EXPRESSION <~ "<") ~ EXPRESSION ^^ { (l, r) => BinaryOpExpr(CmpL(), l, r) }
-    | (EXPRESSION <~ ">=") ~ EXPRESSION ^^ { (l, r) => BinaryOpExpr(CmpGe(), l, r) }
-    | (EXPRESSION <~ "<=") ~ EXPRESSION ^^ { (l, r) => BinaryOpExpr(CmpLe(), l, r) }
+      (EXPRESSION <~? "==") ~? EXPRESSION ^^ { (l, r) => BinaryOpExpr(CmpEq(), l, r) }
+    | (EXPRESSION <~? "!=") ~? EXPRESSION ^^ { (l, r) => BinaryOpExpr(CmpNe(), l, r) }
+    | (EXPRESSION <~? ">") ~? EXPRESSION ^^ { (l, r) => BinaryOpExpr(CmpG(), l, r) }
+    | (EXPRESSION <~? "<") ~? EXPRESSION ^^ { (l, r) => BinaryOpExpr(CmpL(), l, r) }
+    | (EXPRESSION <~? ">=") ~? EXPRESSION ^^ { (l, r) => BinaryOpExpr(CmpGe(), l, r) }
+    | (EXPRESSION <~? "<=") ~? EXPRESSION ^^ { (l, r) => BinaryOpExpr(CmpLe(), l, r) }
   )
 
   lazy val LAZY_BOOLEAN_EXPRESSION: Parser[BinaryOpExpr] = (
-      (EXPRESSION <~ "&&") ~ EXPRESSION ^^ { (l, r) => BinaryOpExpr(LogicalAnd(), l, r) }
-    | (EXPRESSION <~ "||") ~ EXPRESSION ^^ { (l, r) => BinaryOpExpr(LogicalOr(), l, r) }
+      (EXPRESSION <~? "&&") ~? EXPRESSION ^^ { (l, r) => BinaryOpExpr(LogicalAnd(), l, r) }
+    | (EXPRESSION <~? "||") ~? EXPRESSION ^^ { (l, r) => BinaryOpExpr(LogicalOr(), l, r) }
   )
 
-  lazy val ASSIGNMENT_EXPRESSION: Parser[BinaryOpExpr] = (EXPRESSION <~ "=") ~ EXPRESSION ^^ { (l, r) => BinaryOpExpr(Assign(), l, r) }
+  lazy val ASSIGNMENT_EXPRESSION: Parser[BinaryOpExpr] = (EXPRESSION <~? "=") ~? EXPRESSION ^^ { (l, r) => BinaryOpExpr(Assign(), l, r) }
 
   lazy val COMPOUND_ASSIGNMENT_EXPRESSION: Parser[BinaryOpExpr] = (
       (EXPRESSION <~ "+=") ~ EXPRESSION ^^ { (l, r) => BinaryOpExpr(AddAssign(), l, r) }
@@ -122,71 +125,71 @@ trait Statement extends RegexParsers with Literal with Pattern with Identifier w
     | (EXPRESSION <~ ">>=") ~ EXPRESSION ^^ { (l, r) => BinaryOpExpr(BitwiseRShiftAssign(), l, r) }
   )
 
-  lazy val GROUPED_EXPRESSION: Parser[Expr] = "(" ~> EXPRESSION <~ ")"
+  lazy val GROUPED_EXPRESSION: Parser[Expr] = "(" ~>? EXPRESSION <~ ")"
 
-  lazy val ARRAY_EXPRESSION: Parser[Expr] = "[" ~> ARRAY_ELEMENTS <~ "]"
+  lazy val ARRAY_EXPRESSION: Parser[Expr] = "[" ~>? ARRAY_ELEMENTS <~? "]"
   lazy val ARRAY_ELEMENTS = (
-      EXPRESSION ~ ((EXPRESSION <~ ",") *) <~ (","?) ^^ { (e, l) => ArrayExpr(e :: l) }
-    | (EXPRESSION <~ ";") ~ EXPRESSION ^^ ArrayFillExpr
+      EXPRESSION ~? (("," ~>? EXPRESSION) *) <~? (","?) ^^ { (e, l) => ArrayExpr(e :: l) }
+    | (EXPRESSION <~? ";") ~? EXPRESSION ^^ ArrayFillExpr
   )
-  lazy val INDEX_EXPRESSION: Parser[ArrayIndexExpr] = (EXPRESSION <~ "[") ~ EXPRESSION <~ "]" ^^ ArrayIndexExpr
+  lazy val INDEX_EXPRESSION: Parser[ArrayIndexExpr] = (EXPRESSION <~? "[") ~? EXPRESSION <~? "]" ^^ ArrayIndexExpr
   
-  lazy val TUPLE_EXPRESSION: Parser[TupleExpr] = "(" ~> TUPLE_ELEMENTS <~ ")" ^^ TupleExpr
-  lazy val TUPLE_ELEMENTS: Parser[List[Expr]] = ((EXPRESSION <~ ",")*) ~ (EXPRESSION?) ^^ { (l, e) => e match {
+  lazy val TUPLE_EXPRESSION: Parser[TupleExpr] = "(" ~>? TUPLE_ELEMENTS <~? ")" ^^ TupleExpr
+  lazy val TUPLE_ELEMENTS: Parser[List[Expr]] = ((EXPRESSION <~? ",")*) ~? (EXPRESSION?) ^^ { (l, e) => e match {
     case None => l
     case Some(value) => l :+ value
   }}
-  lazy val TUPLE_INDEXING_EXPRESSION: Parser[TupleIndexExpr] = (EXPRESSION <~ ".") ~ TUPLE_INDEX ^^ TupleIndexExpr
+  lazy val TUPLE_INDEXING_EXPRESSION: Parser[TupleIndexExpr] = (EXPRESSION <~? ".") ~? TUPLE_INDEX ^^ TupleIndexExpr
 
-  lazy val CALL_EXPRESSION: Parser[CallExpr] = (EXPRESSION <~ "(") ~ CALL_PARAMS <~ ")" ^^ { CallExpr(_, None, _) }
-  lazy val CALL_PARAMS: Parser[List[Expr]] = EXPRESSION ~ (("," ~> EXPRESSION)*) <~ (","?) ^^ { _ :: _ }
+  lazy val CALL_EXPRESSION: Parser[CallExpr] = (EXPRESSION <~? "(") ~? CALL_PARAMS <~? ")" ^^ { CallExpr(_, None, _) }
+  lazy val CALL_PARAMS: Parser[List[Expr]] = EXPRESSION ~? (("," ~>? EXPRESSION)*) <~? (","?) ^^ { _ :: _ }
 
   // TODO: use path instead of identifier
-  lazy val METHOD_CALL_EXPRESSION = (EXPRESSION <~ ".") ~ (IDENTIFIER <~ "(") ~ CALL_PARAMS <~ ")" ^^ { (recv, method, params) => CallExpr(recv, Some(method), params) }
+  lazy val METHOD_CALL_EXPRESSION = (EXPRESSION <~? ".") ~? (IDENTIFIER <~? "(") ~? CALL_PARAMS <~? ")" ^^ { (recv, method, params) => CallExpr(recv, Some(method), params) }
 
-  lazy val FIELD_EXPRESSION = (EXPRESSION <~ ".") ~ EXPRESSION ^^ FieldExpr
+  lazy val FIELD_EXPRESSION = (EXPRESSION <~? ".") ~? EXPRESSION ^^ FieldExpr
 
   // TODO: add type ascription ( -> TYPE BlockExpression
-  lazy val CLOSURE_EXPRESSION = (("||" ^^^ { List() }) | "|" ~> CLOSURE_PARAMETERS <~ "|") ~ EXPRESSION ^^ ClosureExpr
-  lazy val CLOSURE_PARAMETERS: Parser[List[grammar.Pattern]] = CLOSURE_PARAM ~ (("," ~> CLOSURE_PARAM)*) <~ (","?) ^^ { _ :: _ }
+  lazy val CLOSURE_EXPRESSION = (("||" ^^^ { List() }) | "|" ~>? CLOSURE_PARAMETERS <~? "|") ~? EXPRESSION ^^ ClosureExpr
+  lazy val CLOSURE_PARAMETERS: Parser[List[grammar.Pattern]] = CLOSURE_PARAM ~? (("," ~>? CLOSURE_PARAM)*) <~? (","?) ^^ { _ :: _ }
   // TODO: add type ascription
   lazy val CLOSURE_PARAM = PATTERN
 
   lazy val LOOP_EXPRESSION: Parser[Expr] = (LOOP_LABEL?) ~ (
-      "loop" ~> BLOCK_EXPRESSION ^^ { b => l: Option[String] => InftyLoopExpr(l, b) }
-    | "while" ~> EXPRESSION ~ BLOCK_EXPRESSION ^^ { (c, b) => l: Option[String] => WhileExpr(l, c, b) }
-    | (("while" ~ "let") ~> MATCH_ARM_PATTERNS <~ "=") ~ EXPRESSION ~ BLOCK_EXPRESSION ^^ { (p, u, b) => l: Option[String] => WhileLetExpr(l, p, u, b) }
-    | ("for" ~> PATTERN <~ "in") ~ EXPRESSION ~ BLOCK_EXPRESSION ^^ { (p, c, b) => l: Option[String] => ForLoopExpr(l, p, c, b) }
+      "loop" ~>? BLOCK_EXPRESSION ^^ { b => l: Option[String] => InftyLoopExpr(l, b) }
+    | "while" ~>! EXPRESSION ~? BLOCK_EXPRESSION ^^ { (c, b) => l: Option[String] => WhileExpr(l, c, b) }
+    | (("while" ~! "let") ~>! MATCH_ARM_PATTERNS <~? "=") ~? EXPRESSION ~? BLOCK_EXPRESSION ^^ { (p, u, b) => l: Option[String] => WhileLetExpr(l, p, u, b) }
+    | ("for" ~>! PATTERN <~! "in") ~! EXPRESSION ~? BLOCK_EXPRESSION ^^ { (p, c, b) => l: Option[String] => ForLoopExpr(l, p, c, b) }
   ) ^^ { (l, f) => f(l) }
   lazy val LOOP_LABEL = LIFETIME_OR_LABEL <~ ":"
-  lazy val BREAK_EXPRESSION: Parser[FlowCtrlExpr] = "break" ~> (LIFETIME_OR_LABEL?) ~ (EXPRESSION?) ^^ { FlowCtrlExpr(Break(), _, _) }
-  lazy val CONTINUE_EXPRESSION = "continue" ~> (LIFETIME_OR_LABEL?) ^^ { FlowCtrlExpr(Continue(), _, None) }
+  lazy val BREAK_EXPRESSION: Parser[FlowCtrlExpr] = "break" ~>! (LIFETIME_OR_LABEL?) ~! (EXPRESSION?) ^^ { FlowCtrlExpr(Break(), _, _) }
+  lazy val CONTINUE_EXPRESSION = "continue" ~>! (LIFETIME_OR_LABEL?) ^^ { FlowCtrlExpr(Continue(), _, None) }
 
   lazy val RANGE_EXPRESSION: Parser[RangeExpr] = (
-      (EXPRESSION <~ "..") ~ EXPRESSION ^^ { (f, t) => RangeExpr(Some(f), Some(t), false) }
-    | (EXPRESSION <~ "..=") ~ EXPRESSION ^^ { (f, t) => RangeExpr(Some(f), Some(t), true) }
-    | EXPRESSION <~ ".." ^^ { f => RangeExpr(Some(f), None, false) }
-    | ".." ~> EXPRESSION ^^ { t => RangeExpr(None, Some(t), false) }
-    | "..=" ~> EXPRESSION ^^ { t => RangeExpr(None, Some(t), true) }
+      (EXPRESSION <~? "..") ~? EXPRESSION ^^ { (f, t) => RangeExpr(Some(f), Some(t), false) }
+    | (EXPRESSION <~? "..=") ~? EXPRESSION ^^ { (f, t) => RangeExpr(Some(f), Some(t), true) }
+    | EXPRESSION <~? ".." ^^ { f => RangeExpr(Some(f), None, false) }
+    | ".." ~>? EXPRESSION ^^ { t => RangeExpr(None, Some(t), false) }
+    | "..=" ~>? EXPRESSION ^^ { t => RangeExpr(None, Some(t), true) }
     | ".." ^^ { t => RangeExpr(None, None, false) }
   )
 
-  lazy val IF_EXPRESSION: Parser[IfExpr] = "if" ~> EXPRESSION ~ BLOCK_EXPRESSION ~ (ELSE_ARM?) ^^ IfExpr
-  lazy val ELSE_ARM: Parser[Expr] = "else" ~> (BLOCK_EXPRESSION | IF_EXPRESSION | IF_LET_EXPRESSION)
-  lazy val IF_LET_EXPRESSION: Parser[IfLetExpr] = (("if" ~ "let") ~> MATCH_ARM_PATTERNS <~ "=") ~ EXPRESSION ~ BLOCK_EXPRESSION ~(ELSE_ARM?) ^^ { IfLetExpr(_, _, _, _) }
+  lazy val IF_EXPRESSION: Parser[IfExpr] = "if" ~>! EXPRESSION ~? BLOCK_EXPRESSION ~? (ELSE_ARM?) ^^ IfExpr
+  lazy val ELSE_ARM: Parser[Expr] = "else" ~>? (BLOCK_EXPRESSION | IF_EXPRESSION | IF_LET_EXPRESSION)
+  lazy val IF_LET_EXPRESSION: Parser[IfLetExpr] = (("if" ~! "let") ~>! MATCH_ARM_PATTERNS <~? "=") ~? EXPRESSION ~? BLOCK_EXPRESSION ~(ELSE_ARM?) ^^ { IfLetExpr(_, _, _, _) }
 
-  lazy val MATCH_EXPRESSION: Parser[MatchExpr] = ("match" ~> EXPRESSION <~ "{") ~ (MATCH_ARMS?) <~ "}" ^^ { (e, arms) => MatchExpr(e, arms getOrElse List()) }
+  lazy val MATCH_EXPRESSION: Parser[MatchExpr] = ("match" ~>! EXPRESSION <~? "{") ~? (MATCH_ARMS?) <~? "}" ^^ { (e, arms) => MatchExpr(e, arms getOrElse List()) }
   val armParser = (spec: (List[grammar.Pattern], Option[Expr]), body: Expr) => MatchArm(spec._1, spec._2, body)
   lazy val MATCH_ARMS: Parser[List[MatchArm]] = (
     (
-      (MATCH_ARM <~ "=>") ~ ((BLOCK_EXPRESSION <~ (","?)) | (EXPRESSION <~ ",")) ^^ armParser)*
+      (MATCH_ARM <~? "=>") ~? ((BLOCK_EXPRESSION <~? (","?)) | (EXPRESSION <~? ",")) ^^ armParser)*
     ) ~ (
-      (MATCH_ARM <~ "=>") ~ (BLOCK_EXPRESSION | EXPRESSION) <~ (","?) ^^ armParser
+      (MATCH_ARM <~? "=>") ~? (BLOCK_EXPRESSION | EXPRESSION) <~? (","?) ^^ armParser
     ) ^^ {
       _ :+ _
     }
-  lazy val MATCH_ARM: Parser[(List[grammar.Pattern], Option[Expr])] = MATCH_ARM_PATTERNS ~ (("if" ~> EXPRESSION)?) ^^ { (_, _) }
-  lazy val MATCH_ARM_PATTERNS: Parser[List[grammar.Pattern]] = ("|"?) ~> PATTERN ~ (("|" ~> PATTERN)*) ^^ { (e, l) => e :: l }
+  lazy val MATCH_ARM: Parser[(List[grammar.Pattern], Option[Expr])] = MATCH_ARM_PATTERNS ~ ((whitespace ~> "if" ~>! EXPRESSION)?) ^^ { (_, _) }
+  lazy val MATCH_ARM_PATTERNS: Parser[List[grammar.Pattern]] = ("|"?) ~>? PATTERN ~? (("|" ~>? PATTERN)*) ^^ { (e, l) => e :: l }
 
-  lazy val RETURN_EXPRESSION = "return" ~> (EXPRESSION?) ^^ { FlowCtrlExpr(Return(), None, _) }
+  lazy val RETURN_EXPRESSION = "return" ~>! (EXPRESSION?) ^^ { FlowCtrlExpr(Return(), None, _) }
 }

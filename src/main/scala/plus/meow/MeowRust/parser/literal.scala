@@ -5,9 +5,7 @@ import plus.meow.MeowRust.grammar
 import com.codecommit.gll._
 import com.codecommit.gll.Parsers._
 
-trait Literal extends RegexParsers {
-  override val skipWhitespace: Boolean = false
-
+trait Literal extends SeparatedParsers {
   lazy val QUOTE_ESCAPE: Parser[Char] = (
       "\\\'" ^^ { _ => '\'' }
     | "\\\"" ^^ { _ => '"' }

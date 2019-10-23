@@ -3,7 +3,7 @@ import com.codecommit.gll.RegexParsers
 import plus.meow.MeowRust.grammar._
 import plus.meow.MeowRust.grammar
 
-trait Pattern extends RegexParsers with Literal with Identifier {
+trait Pattern extends Literal with Identifier {
   // TODO: support other types of pattern
   lazy val PATTERN: Parser[grammar.Pattern] = (
       LITERAL_PATTERN
@@ -14,7 +14,7 @@ trait Pattern extends RegexParsers with Literal with Identifier {
   lazy val LITERAL_PATTERN: Parser[LiteralPattern] = LITERAL ^^ LiteralPattern
 
   lazy val IDENTIFIER_PATTERN: Parser[grammar.Pattern] = 
-    ("ref"?) ~ ("mut"?) ~ IDENTIFIER ~ (("@" ~> PATTERN)?) ^^ { (ref, mut, id, bounded) => {
+    ("ref"!?) ~ ("mut"!?) ~ IDENTIFIER ~? (("@" ~>? PATTERN)?) ^^ { (ref, mut, id, bounded) => {
       val idpat = IdentifierPattern(id, ref.isDefined, mut.isDefined)
       bounded match {
         case None => idpat

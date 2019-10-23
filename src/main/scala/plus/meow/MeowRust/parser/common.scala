@@ -1,5 +1,43 @@
 package plus.meow.MeowRust.parser
 import com.codecommit.gll.RegexParsers
+import scala.util.matching.Regex
+import com.codecommit.gll.{LineStream, Result}
+import com.codecommit.gll.Success
+
+trait SeparatedParsers extends RegexParsers {
+  override val skipWhitespace: Boolean = false
+
+  val delimStart = Set('+', '-', '*', '/', '%', '^', '!', '&', '|',
+    '>', '<', '=', '@', '_', '.', ',', ';', ':', '#', '$', '?')
+
+  class SeparatorParser extends RegexParser("""[\n\t ]+""".r) {
+    override def computeFirst(seen: Set[Parser[Any]])
+      = Some((super.computeFirst(seen).get ++ delimStart.map(c => Some(c))))
+
+    override def parse(in: LineStream) = {
+      if(delimStart contains in.head) Success("", in)
+      else super.parse(in)
+    }
+  }
+
+  val separator = new SeparatorParser()
+
+  implicit class ParserExt[+R](val parser: Parser[R]) {
+    def ~![R2](that: Parser[R2]) = (parser <~ separator) ~ that
+    def ~?[R2](that: Parser[R2]) = (parser <~ (separator?)) ~ that
+
+    def ~>![R2](that: Parser[R2]) = (parser <~ separator) ~> that
+    def ~>?[R2](that: Parser[R2]) = (parser <~ (separator?)) ~> that
+
+    def <~![R2](that: Parser[R2]) = (parser <~ separator) <~ that
+    def <~?[R2](that: Parser[R2]) = (parser <~ (separator?)) <~ that
+
+    def !?() = (parser <~ separator)?
+  }
+
+  implicit class ParserExtStr(val str: String) extends ParserExt(literal(str))
+  implicit class ParserExtRegex(val reg: Regex) extends ParserExt(regex(reg))
+}
 
 object Keyword {
   lazy val MAP = Map(
@@ -42,18 +80,14 @@ object Keyword {
   // We don't care about reserved keywords
 }
 
-trait Identifier extends RegexParsers {
-  override val skipWhitespace: Boolean = false
-
+trait Identifier extends SeparatedParsers {
   lazy val IDENTIFIER_OR_KEYWORD: Parser[String] = """[a-zA-Z][a-zA-Z0-9_]*|_[a-zA-Z0-9_]+""".r
   lazy val RAW_IDENTIFIER: Parser[String] = "r#" ~> IDENTIFIER_OR_KEYWORD
   lazy val NON_KEYWORD_IDENTIFIER: Parser[String] = Keyword.MAP.values.foldLeft(IDENTIFIER_OR_KEYWORD)((parser, kw) => parser \ kw)
   lazy val IDENTIFIER = NON_KEYWORD_IDENTIFIER | RAW_IDENTIFIER
 }
 
-trait Label extends RegexParsers with Identifier {
-  override val skipWhitespace: Boolean = false
-
+trait Label extends SeparatedParsers with Identifier {
   // We don't really care about lifetimes
   lazy val LIFETIME_TOKEN: Parser[String] = (
       "'" ~> IDENTIFIER_OR_KEYWORD
