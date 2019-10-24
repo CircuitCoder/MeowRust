@@ -20,7 +20,7 @@ case class PathInExpression(fromRoot: Boolean, segs: List[(PathSeg, GenericArgs)
 case class QualifiedPath[F](base: Type, as: Option[TypePath], follow: F) extends Node
 case class TypePath(fromRoot: Boolean, segs: List[(PathSeg, TypeSegArg)]) extends Node
 
-abstract class Type
+abstract class Type extends Node
 // TODO: Maybe support existential types?
 // TODO: trait object types
 case class TupleType(types: List[Type]) extends Type

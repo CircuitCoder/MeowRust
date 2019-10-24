@@ -34,7 +34,7 @@ object Main extends App {
       for(i <- Parser.parse(stream)) {
         i match {
           case Success(tree, _) =>  {
-            println("Parser tree:\n" + tree)
+            println("Parser tree:\n" + tree.fmt)
             return
           }
           case Failure(f, t) => println("Failed: " + f + ", " + t.mkString) 
