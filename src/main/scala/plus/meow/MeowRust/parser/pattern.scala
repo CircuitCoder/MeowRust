@@ -14,7 +14,7 @@ trait Pattern extends Literal with Identifier {
   lazy val LITERAL_PATTERN: Parser[LiteralPattern] = LITERAL ^^ LiteralPattern
 
   lazy val IDENTIFIER_PATTERN: Parser[grammar.Pattern] = 
-    ("ref"!?) ~ ("mut"!?) ~ IDENTIFIER ~? (("@" ~>? PATTERN)?) ^^ { (ref, mut, id, bounded) => {
+    ("ref"?!) ~ ("mut"?!) ~ IDENTIFIER ~? (("@" ~>? PATTERN)?) ^^ { (ref, mut, id, bounded) => {
       val idpat = IdentifierPattern(id, ref.isDefined, mut.isDefined)
       bounded match {
         case None => idpat

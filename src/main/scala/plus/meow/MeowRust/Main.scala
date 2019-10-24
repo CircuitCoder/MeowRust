@@ -31,14 +31,13 @@ object Main extends App {
       val stream = LineStream(Source fromFile file)
 
       // First parse-tree / error is with the intended precedence
-      val parsed = Parser.parse(stream).head
-      parsed match {
-        case Failure(data, _) => {
-          print("Error parsing " + file)
-          print(data)
-        }
-        case Success(tree, _) => {
-          print("Parser tree:\n" + tree)
+      for(i <- Parser.parse(stream)) {
+        i match {
+          case Success(tree, _) =>  {
+            println("Parser tree:\n" + tree)
+            return
+          }
+          case Failure(f, t) => println("Failed: " + f + ", " + t.mkString) 
         }
       }
     }

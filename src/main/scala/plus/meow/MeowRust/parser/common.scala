@@ -17,7 +17,7 @@ trait SeparatedParsers extends RegexParsers {
       = Some((super.computeFirst(seen).get ++ delimStart.map(c => Some(c))))
 
     override def parse(in: LineStream) = {
-      if(delimStart contains in.head) Success("", in)
+      if(in.length > 0 && (delimStart contains in.head)) Success("", in)
       else super.parse(in)
     }
   }
@@ -34,7 +34,7 @@ trait SeparatedParsers extends RegexParsers {
     def <~![R2](that: Parser[R2]) = (parser <~ separator) <~ that
     def <~?[R2](that: Parser[R2]) = (parser <~ (separator?)) <~ that
 
-    def !?() = (parser <~ separator)?
+    def ?!() = (parser <~ separator)?
     def *?() = (parser <~ (separator?))*
     def *!() = (parser <~ separator)*
   }
@@ -102,17 +102,3 @@ trait Label extends SeparatedParsers with Identifier {
 }
 
 // TODO: support comments
-
-trait Path extends SeparatedParsers with Identifier {
-  val SimplePath: Parser[grammar.SimmplePath] = ("::"?) ~? SimplePathSegment ~? (("::" ~>? SimplePathSegment)*?) ^^ {
-    (root, first, after) => grammar.SimplePath(root.isDefined, first :: after)
-  }
-  val SimplePathSegment: Parser[PathSeg] = (
-      IDENTIFIER ^^ IdentSeg
-    | Keyword.MAP("KW_SUPER") ^^^ { SuperSeg() }
-    | Keyword.MAP("KW_SELF") ^^^ { SelfSeg() }
-  )
-
-  val PathInExpression
-  val PathExprSegment: Parser
-}
