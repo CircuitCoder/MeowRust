@@ -3,6 +3,8 @@ import com.codecommit.gll.RegexParsers
 import scala.util.matching.Regex
 import com.codecommit.gll.{LineStream, Result}
 import com.codecommit.gll.Success
+import plus.meow.MeowRust.grammar._
+import plus.meow.MeowRust.grammar
 
 trait SeparatedParsers extends RegexParsers {
   override val skipWhitespace: Boolean = false
@@ -33,6 +35,8 @@ trait SeparatedParsers extends RegexParsers {
     def <~?[R2](that: Parser[R2]) = (parser <~ (separator?)) <~ that
 
     def !?() = (parser <~ separator)?
+    def *?() = (parser <~ (separator?))*
+    def *!() = (parser <~ separator)*
   }
 
   implicit class ParserExtStr(val str: String) extends ParserExt(literal(str))
@@ -99,5 +103,16 @@ trait Label extends SeparatedParsers with Identifier {
 
 // TODO: support comments
 
-// TODO: impl path
-trait Path extends RegexParsers
+trait Path extends SeparatedParsers with Identifier {
+  val SimplePath: Parser[grammar.SimmplePath] = ("::"?) ~? SimplePathSegment ~? (("::" ~>? SimplePathSegment)*?) ^^ {
+    (root, first, after) => grammar.SimplePath(root.isDefined, first :: after)
+  }
+  val SimplePathSegment: Parser[PathSeg] = (
+      IDENTIFIER ^^ IdentSeg
+    | Keyword.MAP("KW_SUPER") ^^^ { SuperSeg() }
+    | Keyword.MAP("KW_SELF") ^^^ { SelfSeg() }
+  )
+
+  val PathInExpression
+  val PathExprSegment: Parser
+}
