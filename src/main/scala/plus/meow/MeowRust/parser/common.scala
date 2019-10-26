@@ -10,7 +10,9 @@ trait SeparatedParsers extends RegexParsers {
   override val skipWhitespace: Boolean = false
 
   val delimStart = Set('+', '-', '*', '/', '%', '^', '!', '&', '|',
-    '>', '<', '=', '@', '_', '.', ',', ';', ':', '#', '$', '?')
+    '>', '<', '=', '@', '_', '.', ',', ';', ':', '#', '$', '?',
+    '(', '[', '{', ')', ']', '{'
+  )
 
   class SeparatorParser extends RegexParser("""[\n\t ]+""".r) {
     override def computeFirst(seen: Set[Parser[Any]])

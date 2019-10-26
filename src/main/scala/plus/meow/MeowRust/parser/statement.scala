@@ -12,7 +12,7 @@ trait Statement extends RegexParsers with Literal with Pattern with Identifier w
   )
 
   // TODO: support type ascriptions
-  lazy val LET_STATEMENT: Parser[LetStmt] = "let" ~> PATTERN ~ (("=" ~> EXPRESSION)?) ^^ LetStmt
+  lazy val LET_STATEMENT: Parser[LetStmt] = "let" ~> PATTERN ~ (("=" ~> EXPRESSION)?) <~? ";" ^^ LetStmt
   lazy val EXPRESSION_STATEMENT: Parser[ExprStmt] = (
       EXPRESSION_WITHOUT_BLOCK <~? ";"
     | EXPRESSION_WITH_BLOCK
@@ -49,11 +49,14 @@ trait Statement extends RegexParsers with Literal with Pattern with Identifier w
 
   lazy val LITERAL_EXPRESSION: Parser[LiteralExpr] = LITERAL ^^ { LiteralExpr(_) }
 
-  lazy val BLOCK_EXPRESSION: Parser[BlockExpr] = "{" ~>? (STATEMENTS?) <~? "}" ^^ { (l) => BlockExpr(l getOrElse List()) }
-  lazy val STATEMENTS: Parser[List[Any]] = (
-      (STATEMENT+) // Type is ()
-    | (STATEMENT+) ~? EXPRESSION_WITHOUT_BLOCK ^^ { (s, e) => s :+ e } // Type is last expr
-    | EXPRESSION_WITHOUT_BLOCK ^^ { List(_) } // Type is the expr
+  lazy val BLOCK_EXPRESSION: Parser[BlockExpr] = "{" ~>? (STATEMENTS?) <~? "}" ^^ { _ match {
+    case None => BlockExpr(List(), None)
+    case Some((l, e)) => BlockExpr(l, e)
+  }}
+  lazy val STATEMENTS: Parser[(List[Stmt], Option[Expr])] = (
+      (STATEMENT+) ^^ { a => (a, None) }
+    | (STATEMENT+) ~? EXPRESSION_WITHOUT_BLOCK ^^ { (s, e) => (s, Some(e)) } // Type is last expr
+    | EXPRESSION_WITHOUT_BLOCK ^^ { e => (List(), Some(e)) } // Type is the expr
   )
 
   lazy val OPERATOR_EXPRESSION: Parser[Expr] = (
@@ -165,7 +168,10 @@ trait Statement extends RegexParsers with Literal with Pattern with Identifier w
     | ("for" ~>! PATTERN <~! "in") ~! EXPRESSION ~? BLOCK_EXPRESSION ^^ { (p, c, b) => l: Option[String] => ForLoopExpr(l, p, c, b) }
   ) ^^ { (l, f) => f(l) }
   lazy val LOOP_LABEL = LIFETIME_OR_LABEL <~ ":"
-  lazy val BREAK_EXPRESSION: Parser[FlowCtrlExpr] = "break" ~>! (LIFETIME_OR_LABEL?) ~! (EXPRESSION?) ^^ { FlowCtrlExpr(Break(), _, _) }
+  lazy val BREAK_EXPRESSION: Parser[FlowCtrlExpr] = (
+      "break" ~>! LIFETIME_OR_LABEL ~! (EXPRESSION?) ^^ { (l, e) => FlowCtrlExpr(Break(), Some(l), e) }
+    | "break" ~>! (EXPRESSION?) ^^ { FlowCtrlExpr(Break(), None, _) }
+  )
   lazy val CONTINUE_EXPRESSION = "continue" ~>! (LIFETIME_OR_LABEL?) ^^ { FlowCtrlExpr(Continue(), _, None) }
 
   lazy val RANGE_EXPRESSION: Parser[RangeExpr] = (

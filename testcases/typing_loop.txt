@@ -1,0 +1,7 @@
+loop {
+  break if true {
+    "123"
+  } else {
+    "456"
+  }
+}

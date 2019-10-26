@@ -5,6 +5,11 @@ import scala.io.Source
 import plus.meow.MeowRust.parser.Parser
 import com.codecommit.gll.Success
 import com.codecommit.gll.Failure
+import plus.meow.MeowRust.grammar.Node
+import plus.meow.MeowRust.resolve.TypeResolvable
+import plus.meow.MeowRust.resolve.TypeResolutionContext
+import plus.meow.MeowRust.resolve.ResolvedType
+import scala.collection.immutable.HashMap
 
 /**
  * MeowRust compiler
@@ -25,21 +30,41 @@ import com.codecommit.gll.Failure
 
 
 object Main extends App {
+  def parse(file: String): Node = {
+    println("Parsing file: " + file)
+
+    val stream = LineStream(Source fromFile file)
+
+    // First successful parsing-tree is with the intended precedence
+    for(i <- Parser.parse(stream)) {
+      i match {
+        case Success(tree, _) =>  {
+          println("Parser tree:\n" + tree.fmt)
+          return tree
+        }
+        case Failure(f, t) => println("Failed: " + f + ", " + t.mkString) 
+      }
+    }
+
+    throw new Error("No applicable parsing tree")
+  }
+
+  def typing(root: Node): ResolvedType = {
+    if(root.isInstanceOf[TypeResolvable]) {
+      val ctx = TypeResolutionContext(HashMap(), None, None)
+      val t = root.asInstanceOf[TypeResolvable].resolve(ctx, None)
+      println("Root type: " + t.toString)
+      t
+    } else {
+      throw new Error("Root not type-resolvable")
+    }
+  }
+
   override def main(args: Array[String]) {
     for(file <- args) {
       println("Processing file " + file)
-      val stream = LineStream(Source fromFile file)
-
-      // First parse-tree / error is with the intended precedence
-      for(i <- Parser.parse(stream)) {
-        i match {
-          case Success(tree, _) =>  {
-            println("Parser tree:\n" + tree.fmt)
-            return
-          }
-          case Failure(f, t) => println("Failed: " + f + ", " + t.mkString) 
-        }
-      }
+      val tree = parse(file)
+      val resolvedType = typing(tree)
     }
   }
 }
