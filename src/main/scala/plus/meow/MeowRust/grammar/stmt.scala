@@ -8,12 +8,21 @@ abstract class Stmt extends TypeResolvable {
 
 case class LetStmt(store: Pattern, value: Option[Expr]) extends Stmt {
   // TODO: assign type to the pattern
-  // TODO: assign type hint to value
-}
-case class ExprStmt(expr: Expr) extends Stmt {
   override def resolve(ctx: TypeResolutionContext, hint: Option[TypeHint]): ResolvedType = {
-    expr.resolve(ctx, None)
+    val t = value match {
+      case None => throw new Error("Reverse type-inferring not impl")
+      case Some(expr) => expr.resolve(ctx, None)
+    }
+
+    store.applyBinding(ctx, t)
     plus.meow.MeowRust.resolve.TupleType(List()) // Unit
+  }
+}
+case class ExprStmt(expr: Expr, withBlock: Boolean) extends Stmt {
+  override def resolve(ctx: TypeResolutionContext, hint: Option[TypeHint]): ResolvedType = {
+    val bodyType = expr.resolve(ctx, None)
+    if(withBlock) bodyType
+    else plus.meow.MeowRust.resolve.TupleType(List()) // Unit
   }
 }
 case class EmptyStmt() extends Stmt

@@ -1,6 +1,7 @@
 loop {
+  let ident = (1, "b", 222.222f64);
   break if true {
-    (1, "b", 222.222f64).1
+    ident.1
   } else {
     "456"
   }

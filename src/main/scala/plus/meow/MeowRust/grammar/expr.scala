@@ -199,13 +199,16 @@ abstract class LoopExpr extends Expr {
 }
 case class InftyLoopExpr(label: Option[String], body: Expr) extends LoopExpr
 case class ForLoopExpr(label: Option[String], pat: Pattern, collection: Expr, body: Expr) extends LoopExpr {
+  // TODO: IntoIterator trait
   // TODO: apply pattern type into ctx when resolving types
+  // TODO: for loops cannot have breaks with values
 }
 case class WhileExpr(label: Option[String], cond: Expr, body: Expr) extends LoopExpr {
-  // TODO: apply pattern type into ctx when resolving types
+  // TODO: while loops cannot have breaks with values
 }
 case class WhileLetExpr(label: Option[String], pat: List[Pattern], unwrapped: Expr, body: Expr) extends LoopExpr {
   // TODO: apply pattern type into ctx when resolving types
+  // TODO: while loops cannot have breaks with values
 }
 
 // Conditionals
@@ -244,6 +247,7 @@ case class MatchExpr(input: Expr, arms: List[MatchArm]) extends Expr {
   override def resolve(ctx: TypeResolutionContext, hint: Option[TypeHint]): ResolvedType = {
     val inputType = input.resolve(ctx, None)
     // TODO: check match arm pattern
+    // TODO: register match arm pattern
     var store: Option[ResolvedType] = None
     for(arm <- arms) arm match {
       case MatchArm(pat, _, body) => {
@@ -257,5 +261,11 @@ case class MatchExpr(input: Expr, arms: List[MatchArm]) extends Expr {
     }
 
     store getOrElse plus.meow.MeowRust.resolve.NeverType()
+  }
+}
+
+case class PathExpr(path: EvaluablePath) extends Expr {
+  override def resolve(ctx: TypeResolutionContext, hint: Option[TypeHint]): ResolvedType = {
+    ctx.resolveBinding(path)
   }
 }

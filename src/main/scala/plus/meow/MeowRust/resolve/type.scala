@@ -1,5 +1,9 @@
 package plus.meow.MeowRust.resolve
 import scala.collection.immutable.HashMap
+import scala.collection.mutable
+import plus.meow.MeowRust.grammar.EvaluablePath
+import plus.meow.MeowRust.grammar.PathInExpression
+import plus.meow.MeowRust.grammar.IdentSeg
 
 class ResolvedImpl(
 )
@@ -34,6 +38,8 @@ case class TypeResolutionContext(
   val labels: HashMap[String, ResolvedType => Boolean],
   val func: Option[ResolvedType => Boolean],
   val breakable: Option[ResolvedType => Boolean],
+
+  var bindings: mutable.HashMap[String, ResolvedType]
 ) {
   def getBreakable(label: Option[String]) = label match {
     case Some(l) => labels.get(l)
@@ -46,7 +52,38 @@ case class TypeResolutionContext(
       case Some(l) => labels + (l -> act)
     }
 
-    TypeResolutionContext(newMap, func, Some(act))
+    TypeResolutionContext(newMap, func, Some(act), bindings.clone())
+  }
+
+  def withCtx = TypeResolutionContext(labels, func, breakable, bindings.clone())
+
+  // Called within block
+  // TODO: mutable state
+  def applyBinding(path: String, t: ResolvedType) {
+    bindings += (path-> t)
+  }
+
+  def resolveBinding(path: EvaluablePath): ResolvedType = {
+    path match {
+      case PathInExpression(r, segs) => {
+        if(r || segs.length > 1) {
+          // TODO: resolve global bindings
+          ResolutionErrorType("Global bindings not impl: " + path.toString)
+        } else {
+          // TODO: instantiate generic functions
+          segs(0)._1 match {
+            case IdentSeg(ident) =>
+              bindings.get(ident) match {
+                case Some(v) => v
+                case None => ResolutionErrorType("Ident not found: " + path.toString)
+              }
+            case _ => ResolutionErrorType("super/self not impl: " + path.toString)
+          }
+
+        }
+      }
+      // Qualified paths cannot happen for now
+    }
   }
 }
 

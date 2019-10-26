@@ -10,6 +10,7 @@ import plus.meow.MeowRust.resolve.TypeResolvable
 import plus.meow.MeowRust.resolve.TypeResolutionContext
 import plus.meow.MeowRust.resolve.ResolvedType
 import scala.collection.immutable.HashMap
+import scala.collection.mutable
 
 /**
  * MeowRust compiler
@@ -51,7 +52,8 @@ object Main extends App {
 
   def typing(root: Node): ResolvedType = {
     if(root.isInstanceOf[TypeResolvable]) {
-      val ctx = TypeResolutionContext(HashMap(), None, None)
+      // TODO: register
+      val ctx = TypeResolutionContext(HashMap(), None, None, mutable.HashMap())
       val t = root.asInstanceOf[TypeResolvable].resolve(ctx, None)
       println("Root type: " + t.toString)
       t

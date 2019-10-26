@@ -15,9 +15,11 @@ abstract class TypeSegArg
 case class NonFnTypeArg(args: GenericArgs) extends TypeSegArg
 case class FnTypeArg(args: List[Type], ret: Option[Type]) extends TypeSegArg
 
+trait EvaluablePath
+
 case class SimplePath(fromRoot: Boolean, segs: List[PathSeg]) extends Node
-case class PathInExpression(fromRoot: Boolean, segs: List[(PathSeg, GenericArgs)]) extends Node
-case class QualifiedPath[F](base: Type, as: Option[TypePath], follow: F) extends Node
+case class PathInExpression(fromRoot: Boolean, segs: List[(PathSeg, GenericArgs)]) extends Node with EvaluablePath
+case class QualifiedPath[F](base: Type, as: Option[TypePath], follow: F) extends Node with EvaluablePath
 case class TypePath(fromRoot: Boolean, segs: List[(PathSeg, TypeSegArg)]) extends Node
 
 abstract class Type extends Node
