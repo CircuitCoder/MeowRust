@@ -1,8 +1,10 @@
-loop {
-  let ident = (1, "b", 222.222f64);
-  break if true {
-    ident.1
-  } else {
-    "456"
+'outer: loop {
+  while true {
+    let ident = (1, "b", 222.222f64);
+    break 'outer if true {
+      ident.1
+    } else {
+      "456"
+    }
   }
 }

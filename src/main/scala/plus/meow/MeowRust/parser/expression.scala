@@ -151,7 +151,7 @@ trait Expression extends RegexParsers with Literal with Pattern with Identifier 
   // TODO: add type ascription
   lazy val CLOSURE_PARAM = PATTERN
 
-  lazy val LOOP_EXPRESSION: Parser[Expr] = (LOOP_LABEL?) ~ (
+  lazy val LOOP_EXPRESSION: Parser[Expr] = ((LOOP_LABEL?) <~ separator) ~? (
       "loop" ~>? BLOCK_EXPRESSION ^^ { b => l: Option[String] => InftyLoopExpr(l, b) }
     | "while" ~>! EXPRESSION ~? BLOCK_EXPRESSION ^^ { (c, b) => l: Option[String] => WhileExpr(l, c, b) }
     | (("while" ~! "let") ~>! MATCH_ARM_PATTERNS <~? "=") ~? EXPRESSION ~? BLOCK_EXPRESSION ^^ { (p, u, b) => l: Option[String] => WhileLetExpr(l, p, u, b) }
