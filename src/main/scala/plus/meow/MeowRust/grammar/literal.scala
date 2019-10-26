@@ -24,7 +24,7 @@ case class IntLiteral(val value: BigInt, val container: Option[String]) extends 
 }
 case class FloatLiteral(val value: BigDecimal, val container: Option[String]) extends Literal {
   override type LitRepr = BigDecimal
-  override lazy val solidType: ResolvedType = PrimitiveType(container getOrElse "f128") // TODO: infer length
+  override lazy val solidType: ResolvedType = PrimitiveType(container getOrElse "f64") // TODO: infer length
 }
 case class StrLiteral(val value: String) extends Literal {
   override type LitRepr = String

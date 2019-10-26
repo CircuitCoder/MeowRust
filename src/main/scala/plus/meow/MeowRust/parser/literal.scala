@@ -92,8 +92,8 @@ trait Literal extends SeparatedParsers {
   lazy val DEC_LITERAL: Parser[BigInt] = RAW_DEC_LITERAL ^^ { BigInt(_) }
 
   lazy val TUPLE_INDEX: Parser[BigInt] = (
-      "0"
-    | "[1-9][0-9]*"
+      "0".r
+    | "[1-9][0-9]*".r
   ) ^^ { BigInt(_) }
 
   lazy val INTEGER_SUFFIX: Parser[String] = (

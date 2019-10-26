@@ -100,7 +100,7 @@ case class ArrayFillExpr(elem: Expr, count: Expr) extends Expr {
 case class CallExpr(recv: Expr, method: Option[String], params: List[Expr]) extends Expr {
   // TODO: resolve functions
 }
-case class FieldExpr(owner: Expr, field: Expr) extends Expr
+case class FieldExpr(owner: Expr, field: String) extends Expr
 case class ArrayIndexExpr(owner: Expr, index: Expr) extends Expr {
   override def resolve(ctx: TypeResolutionContext, hint: Option[TypeHint]): ResolvedType = {
     owner.resolve(ctx, None) match {

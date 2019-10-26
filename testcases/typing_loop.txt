@@ -1,6 +1,6 @@
 loop {
   break if true {
-    "123"
+    (1, "b", 222.222f64).1
   } else {
     "456"
   }

@@ -25,12 +25,12 @@ trait Statement extends RegexParsers with Literal with Pattern with Identifier w
     | GROUPED_EXPRESSION
     | CALL_EXPRESSION
     | METHOD_CALL_EXPRESSION
+    | TUPLE_INDEXING_EXPRESSION // Comes before field expr
     | FIELD_EXPRESSION
     // | PATH_EXPRESSION // TODO: impl
     | OPERATOR_EXPRESSION
     | ARRAY_EXPRESSION
     | INDEX_EXPRESSION
-    | TUPLE_INDEXING_EXPRESSION
     // | STRUCT_EXPRESSION // TODO: impl
     // | ENUMERATION_VARIANT_EXPRESSION // TODO: impl
     | CLOSURE_EXPRESSION
@@ -153,7 +153,7 @@ trait Statement extends RegexParsers with Literal with Pattern with Identifier w
   // TODO: use path instead of identifier
   lazy val METHOD_CALL_EXPRESSION = (EXPRESSION <~? ".") ~? (IDENTIFIER <~? "(") ~? CALL_PARAMS <~? ")" ^^ { (recv, method, params) => CallExpr(recv, Some(method), params) }
 
-  lazy val FIELD_EXPRESSION = (EXPRESSION <~? ".") ~? EXPRESSION ^^ FieldExpr
+  lazy val FIELD_EXPRESSION = (EXPRESSION <~? ".") ~? IDENTIFIER ^^ FieldExpr
 
   // TODO: add type ascription ( -> TYPE BlockExpression
   lazy val CLOSURE_EXPRESSION = (("||" ^^^ { List() }) | "|" ~>? CLOSURE_PARAMETERS <~? "|") ~? EXPRESSION ^^ ClosureExpr
