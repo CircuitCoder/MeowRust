@@ -1,1 +1,0 @@
-"this is \x61\n\tstring literal"

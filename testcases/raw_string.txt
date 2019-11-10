@@ -1,0 +1,2 @@
+r#"this is a "RAW STRING" \
+并且还可以有中文"#

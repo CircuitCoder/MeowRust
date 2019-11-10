@@ -1,0 +1,1 @@
+"this is \x61\n\tstring literal, 并且包含中文"
