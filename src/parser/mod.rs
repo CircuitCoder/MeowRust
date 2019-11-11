@@ -1,6 +1,6 @@
 pub mod literal;
 
 use crate::grammar::Literal;
-use nom::{named, call, complete};
+use nom::{named, complete};
 
-named!(pub Parser<&str, Literal>, complete!(literal::LITERAL));
+named!(pub parse<&str, Literal>, complete!(literal::literal));

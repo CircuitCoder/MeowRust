@@ -17,7 +17,7 @@ fn main(args: Args) -> Result<(), Error> {
     println!("Processing file {}...", args.file.as_path().to_str().unwrap());
     let mut content = String::new();
     File::open(args.file)?.read_to_string(&mut content)?;
-    let parsed = parser::Parser(&content);
+    let parsed = parser::parse(&content);
     println!("Success!");
     println!("{:#?}", parsed);
     Ok(())

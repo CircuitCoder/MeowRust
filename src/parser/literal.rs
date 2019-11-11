@@ -8,40 +8,39 @@ use nom::{
   opt,
   one_of,
   value,
-  many0,
   IResult,
 };
 
 use crate::grammar::{Literal, IntSuffix};
 
-named!(BIN_DIGIT<&str, u32>, map!(
+named!(bin_digit<&str, u32>, map!(
   one_of!("01"),
   |c: char| c.to_digit(2).unwrap()
 ));
 
-named!(OCT_DIGIT<&str, u32>, map!(
+named!(oct_digit<&str, u32>, map!(
   one_of!("01234567"),
   |c: char| c.to_digit(8).unwrap()
 ));
 
-named!(DEC_DIGIT<&str, u32>, map!(
+named!(dec_digit<&str, u32>, map!(
   one_of!("0123456789"),
   |c: char| c.to_digit(10).unwrap()
 ));
 
-named!(HEX_DIGIT<&str, u32>, map!(
+named!(hex_digit<&str, u32>, map!(
   one_of!("0123456789abcdefABCDEF"),
   |c: char| c.to_digit(16).unwrap()
 ));
 
-named!(QUOTE_ESCAPE<&str, char>,
+named!(quote_escape<&str, char>,
   switch!(take!(2),
       "\\\"" => char!('"')
     | "\\\'" => char!('\'')
   )
 );
 
-named!(pub ASCII_ESCAPE<&str, char>,
+named!(ascii_escape<&str, char>,
   alt!(
     switch!(take!(2),
         "\\n" => value!('\n')
@@ -52,20 +51,20 @@ named!(pub ASCII_ESCAPE<&str, char>,
     )
     |
     map!(
-      tuple!(tag!("\\x"), OCT_DIGIT, HEX_DIGIT),
+      tuple!(tag!("\\x"), oct_digit, hex_digit),
       |(_, o, h)| (o * 16 + h) as u8 as char
     )
   )
 );
 
-named!(CHAR_LITERAL<&str, Literal>,
+named!(char_literal<&str, Literal>,
   map!(
     tuple!(
       tag!("'"),
       alt!(
           none_of!("'\\\n\r\t")
-        | QUOTE_ESCAPE
-        | ASCII_ESCAPE
+        | quote_escape
+        | ascii_escape
       ),
       tag!("'")
     ),
@@ -73,15 +72,15 @@ named!(CHAR_LITERAL<&str, Literal>,
   )
 );
 
-named!(pub STRING_LITERAL<&str, Literal>,
+named!(string_literal<&str, Literal>,
   map!(
     tuple!(
       tag!("\""),
       many_till!(
         alt!(
             none_of!("\\\n\"")
-          | QUOTE_ESCAPE
-          | ASCII_ESCAPE
+          | quote_escape
+          | ascii_escape
         ),
         tag!("\"")
       )
@@ -90,14 +89,14 @@ named!(pub STRING_LITERAL<&str, Literal>,
   )
 );
 
-named!(RAW_STRING_LITERAL<&str, Literal>,
+named!(raw_string_literal<&str, Literal>,
   preceded!(
     tag!("r"),
-    RAW_STRING_CONTENT
+    raw_string_content
   )
 );
 
-fn RAW_STRING_CONTENT(input: &str) -> IResult<&str, Literal> {
+fn raw_string_content(input: &str) -> IResult<&str, Literal> {
   // Count front
   let mut pending = input;
   let mut count = 0;
@@ -159,39 +158,39 @@ fn RAW_STRING_CONTENT(input: &str) -> IResult<&str, Literal> {
   return Err(nom::Err::Error((input, nom::error::ErrorKind::Alt)))
 }
 
-named!(BIN_LITERAL<&str, u128>,
+named!(bin_literal<&str, u128>,
   preceded!(
     tag!("0b"),
-    fold_many_m_n!(1, 128, BIN_LITERAL,
-      0, |acc, item| acc * 2 + item)
+    fold_many_m_n!(1, 128, bin_digit,
+      0, |acc, item| acc * 2 + item as u128)
   )
 );
 
-named!(OCT_LITERAL<&str, u128>,
+named!(oct_literal<&str, u128>,
   preceded!(
     tag!("0b"),
-    fold_many_m_n!(1, 128, OCT_LITERAL,
-      0, |acc, item| acc * 2 + item)
+    fold_many_m_n!(1, 128, oct_digit,
+      0, |acc, item| acc * 8 + item as u128)
   )
 );
 
-named!(DEC_LITERAL<&str, u128>,
+named!(dec_literal<&str, u128>,
   preceded!(
     tag!("0b"),
-    fold_many_m_n!(1, 128, DEC_LITERAL,
-      0, |acc, item| acc * 2 + item)
+    fold_many_m_n!(1, 128, dec_digit,
+      0, |acc, item| acc * 10 + item as u128)
   )
 );
 
-named!(HEX_LITERAL<&str, u128>,
+named!(hex_literal<&str, u128>,
   preceded!(
     tag!("0b"),
-    fold_many_m_n!(1, 128, HEX_LITERAL,
-      0, |acc, item| acc * 2 + item)
+    fold_many_m_n!(1, 128, hex_digit,
+      0, |acc, item| acc * 16 + item as u128)
   )
 );
 
-named!(INTEGER_SUFFIX<&str, IntSuffix>,
+named!(integer_suffix<&str, IntSuffix>,
   alt!(
       map!(tag!("u8"), |_| IntSuffix::U8)
     | map!(tag!("u16"), |_| IntSuffix::U16)
@@ -209,34 +208,34 @@ named!(INTEGER_SUFFIX<&str, IntSuffix>,
   )
 );
 
-named!(INTEGER_LITERAL<&str, Literal>,
+named!(integer_literal<&str, Literal>,
   map!(
     tuple!(
       alt!(
-          BIN_LITERAL
-        | OCT_LITERAL
-        | DEC_LITERAL
-        | HEX_LITERAL
+          bin_literal
+        | oct_literal
+        | dec_literal
+        | hex_literal
       ),
-      opt!(INTEGER_SUFFIX)
+      opt!(integer_suffix)
     ),
     |(l, s)| Literal::Int(l, s)
   )
 );
 
-named!(BOOLEAN_LITERAL<&str, Literal>,
+named!(boolean_literal<&str, Literal>,
   alt!(
       map!(tag!("true"), |_| Literal::Bool(true))
     | map!(tag!("false"), |_| Literal::Bool(false))
   )
 );
 
-named!(pub LITERAL<&str, Literal>,
+named!(pub literal<&str, Literal>,
   alt!(
-      CHAR_LITERAL
-    | STRING_LITERAL
-    | RAW_STRING_LITERAL
-    | INTEGER_LITERAL
-    | BOOLEAN_LITERAL
+      char_literal
+    | string_literal
+    | raw_string_literal
+    | integer_literal
+    | boolean_literal
   )
 );
