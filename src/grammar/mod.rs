@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 #[derive(Debug)]
 pub enum IntSuffix {
   U8,
@@ -23,3 +25,56 @@ pub enum Literal {
   Str(String),
   Bool(bool),
 }
+
+#[derive(Debug)]
+pub enum PathSeg<'a> {
+  Super,
+  SelfVal,
+  SelfType,
+  Ident(&'a str), // TODO: cow
+}
+
+#[derive(Default, Debug)]
+pub struct GenericArgs<'a> {
+  pub types: Vec<Type<'a>>,
+  pub bindings: HashMap<&'a str, Type<'a>>,
+}
+
+#[derive(Debug)]
+pub struct Path<'a, T> {
+  pub from_root: bool,
+  pub segments: Vec<(PathSeg<'a>, T)>,
+}
+
+pub type SimplePath<'a> = Path<'a, ()>;
+pub type PathInExpr<'a> = Path<'a, GenericArgs<'a>>;
+pub type TypePath<'a> = Path<'a, TypeSegArgs<'a>>;
+
+#[derive(Debug)]
+pub struct FnTypeSpec<'a> {
+  pub args: Vec<Type<'a>>,
+  pub ret: Box<Type<'a>>,
+}
+
+#[derive(Debug)]
+pub enum TypeSegArgs<'a> {
+  NonFnArgs(GenericArgs<'a>),
+  FnArgs(FnTypeSpec<'a>),
+  None,
+}
+
+#[derive(Debug)]
+pub enum Type<'a> {
+  Ident(TypePath<'a>),
+  Tuple(Vec<Type<'a>>),
+  Ref(bool, Box<Type<'a>>),
+  Array(Box<Type<'a>>, usize),
+  Slice(Box<Type<'a>>),
+
+  BareFunc(FnTypeSpec<'a>),
+
+  Never,
+  Placeholder,
+}
+
+pub const UNIT_TYPE: Type = Type::Tuple(Vec::new());

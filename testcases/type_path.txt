@@ -1,0 +1,1 @@
+      std::boxed::Box<fn(u64, some::inner::wtf:: < generic>) -> (!, [i32;16], &     mut [ usize])>

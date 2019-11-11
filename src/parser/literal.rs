@@ -8,6 +8,7 @@ use nom::{
   opt,
   one_of,
   value,
+  complete,
   IResult,
 };
 
@@ -42,18 +43,18 @@ named!(quote_escape<&str, char>,
 
 named!(ascii_escape<&str, char>,
   alt!(
-    switch!(take!(2),
+    complete!(switch!(take!(2),
         "\\n" => value!('\n')
       | "\\r" => value!('\r')
       | "\\t" => value!('\t')
       | "\\\\" => value!('\\')
       | "\\0" => value!('\0')
-    )
+    ))
     |
-    map!(
+    complete!(map!(
       tuple!(tag!("\\x"), oct_digit, hex_digit),
       |(_, o, h)| (o * 16 + h) as u8 as char
-    )
+    ))
   )
 );
 
@@ -62,9 +63,9 @@ named!(char_literal<&str, Literal>,
     tuple!(
       tag!("'"),
       alt!(
-          none_of!("'\\\n\r\t")
-        | quote_escape
-        | ascii_escape
+          complete!(none_of!("'\\\n\r\t"))
+        | complete!(quote_escape)
+        | complete!(ascii_escape)
       ),
       tag!("'")
     ),
@@ -78,9 +79,9 @@ named!(string_literal<&str, Literal>,
       tag!("\""),
       many_till!(
         alt!(
-            none_of!("\\\n\"")
-          | quote_escape
-          | ascii_escape
+            complete!(none_of!("\\\n\""))
+          | complete!(quote_escape)
+          | complete!(ascii_escape)
         ),
         tag!("\"")
       )
@@ -168,23 +169,20 @@ named!(bin_literal<&str, u128>,
 
 named!(oct_literal<&str, u128>,
   preceded!(
-    tag!("0b"),
+    tag!("0o"),
     fold_many_m_n!(1, 128, oct_digit,
       0, |acc, item| acc * 8 + item as u128)
   )
 );
 
 named!(dec_literal<&str, u128>,
-  preceded!(
-    tag!("0b"),
-    fold_many_m_n!(1, 128, dec_digit,
-      0, |acc, item| acc * 10 + item as u128)
-  )
+  fold_many_m_n!(1, 128, dec_digit,
+    0, |acc, item| acc * 10 + item as u128)
 );
 
 named!(hex_literal<&str, u128>,
   preceded!(
-    tag!("0b"),
+    tag!("0x"),
     fold_many_m_n!(1, 128, hex_digit,
       0, |acc, item| acc * 16 + item as u128)
   )
@@ -212,12 +210,12 @@ named!(integer_literal<&str, Literal>,
   map!(
     tuple!(
       alt!(
-          bin_literal
-        | oct_literal
-        | dec_literal
-        | hex_literal
+          complete!(bin_literal)
+        | complete!(oct_literal)
+        | complete!(dec_literal)
+        | complete!(hex_literal)
       ),
-      opt!(integer_suffix)
+      opt!(complete!(integer_suffix))
     ),
     |(l, s)| Literal::Int(l, s)
   )
