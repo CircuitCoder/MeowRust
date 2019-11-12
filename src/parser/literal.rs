@@ -4,7 +4,8 @@ use nom::{
   none_of,
   many_till,
   preceded,
-  fold_many_m_n,
+  fold_many1,
+  fold_many0,
   opt,
   one_of,
   value,
@@ -169,7 +170,7 @@ fn raw_string_content(input: &str) -> IResult<&str, Literal> {
 named!(bin_literal<&str, u128>,
   preceded!(
     tag!("0b"),
-    fold_many_m_n!(1, 128, bin_digit,
+    fold_many1!(bin_digit,
       0, |acc, item| acc * 2 + item as u128)
   )
 );
@@ -177,20 +178,20 @@ named!(bin_literal<&str, u128>,
 named!(oct_literal<&str, u128>,
   preceded!(
     tag!("0o"),
-    fold_many_m_n!(1, 128, oct_digit,
+    fold_many1!(oct_digit,
       0, |acc, item| acc * 8 + item as u128)
   )
 );
 
 named!(dec_literal<&str, u128>,
-  fold_many_m_n!(1, 128, dec_digit,
+  fold_many1!(dec_digit,
     0, |acc, item| acc * 10 + item as u128)
 );
 
 named!(hex_literal<&str, u128>,
   preceded!(
     tag!("0x"),
-    fold_many_m_n!(1, 128, hex_digit,
+    fold_many1!(hex_digit,
       0, |acc, item| acc * 16 + item as u128)
   )
 );
@@ -198,7 +199,7 @@ named!(hex_literal<&str, u128>,
 fn tuple_idx_nonzero(input: &str) -> IResult<&str, u128> {
   let (rest, first) = tuple_idx_first(input)?;
 
-  multi::fold_many_m_n(1, 128, oct_digit,
+  multi::fold_many0(dec_digit,
     first as u128, |acc, item| acc * 10 + item as u128)(rest)
 }
 

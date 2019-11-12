@@ -4,7 +4,7 @@ mod r#type;
 
 pub use r#type::*;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum IntSuffix {
   U8,
   U16,
@@ -21,7 +21,7 @@ pub enum IntSuffix {
   Isize,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Literal {
   Char(char),
   Int(u128, Option<IntSuffix>),
@@ -30,7 +30,7 @@ pub enum Literal {
   Bool(bool),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum PathSeg<'a> {
   Super,
   SelfVal,
@@ -38,13 +38,13 @@ pub enum PathSeg<'a> {
   Ident(&'a str), // TODO: cow
 }
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone)]
 pub struct GenericArgs<'a> {
   pub types: Vec<Type<'a>>,
   pub bindings: HashMap<&'a str, Type<'a>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Path<'a, T> {
   pub from_root: bool,
   pub segments: Vec<(PathSeg<'a>, T)>,
@@ -54,20 +54,20 @@ pub type SimplePath<'a> = Path<'a, ()>;
 pub type PathInExpr<'a> = Path<'a, GenericArgs<'a>>;
 pub type TypePath<'a> = Path<'a, TypeSegArgs<'a>>;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct FnTypeSpec<'a> {
   pub args: Vec<Type<'a>>,
   pub ret: Box<Type<'a>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum TypeSegArgs<'a> {
   NonFnArgs(GenericArgs<'a>),
   FnArgs(FnTypeSpec<'a>),
   None,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Pat<'a> {
   Literal(Literal),
   Ident {
@@ -79,21 +79,21 @@ pub enum Pat<'a> {
   },
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Stmt<'a> {
   Empty,
   Let(Pat<'a>, Option<Expr<'a>>),
   Expr(Expr<'a>),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum FlowCtrl<'a> {
   Ret{ ret: Option<Box<Expr<'a>>> },
   Break{ label: Option<&'a str>, ret: Option<Box<Expr<'a>>> },
   Cont{ label: Option<&'a str> },
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Expr<'a> {
   Literal(Literal),
   Block {
@@ -178,15 +178,17 @@ pub enum Expr<'a> {
     from: Box<Expr<'a>>,
     arms: Vec<(MatchArm<'a>, Expr<'a>)>,
   },
+
+  Nothing,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum BinaryOp {
   ArithOp(ArithOp),
   LogicalOp(LogicalOp),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ArithOp {
   Add, Sub, Mul, Div, Mod,
   BitAnd, BitOr, BitXor, BitLS, BitRS,
@@ -220,7 +222,7 @@ impl ArithOp {
   }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum LogicalOp {
   And, Or,
   Eq, Ne, L, G, Le, Ge,
@@ -258,7 +260,7 @@ impl Into<BinaryOp> for LogicalOp {
   }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum LoopCond<'a> {
   Infty,
   For(Pat<'a>, Box<Expr<'a>>),
@@ -266,13 +268,13 @@ pub enum LoopCond<'a> {
   WhileLet(Vec<Pat<'a>>, Box<Expr<'a>>),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum IfCond<'a> {
   Let(Pat<'a>, Box<Expr<'a>>),
   Bool(Box<Expr<'a>>)
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct MatchArm<'a> {
   pub pats: Vec<Pat<'a>>,
   pub guard: Option<Box<Expr<'a>>>

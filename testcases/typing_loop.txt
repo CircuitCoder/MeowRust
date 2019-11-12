@@ -1,6 +1,6 @@
 'outer: loop {
   while true {
-    let ident = (1, "b", 222.222f64);
+    let ident = (1, "b", false);
     break 'outer if true {
       ident.1
     } else {

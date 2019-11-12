@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use super::*;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum SolidType<'a> {
   Ident(TypePath<'a>),
   Tuple(Vec<Type<'a>>),
@@ -15,7 +15,7 @@ pub enum SolidType<'a> {
   Never,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Type<'a> {
   Solid(SolidType<'a>),
   SameAs(Rc<Type<'a>>),

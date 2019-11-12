@@ -1,5 +1,7 @@
 use nom::{
   named, map, alt, complete, tag, opt, many0, terminated, separated_nonempty_list, value, one_of,
+  call,
+  IResult,
 };
 
 use super::literal::literal;
@@ -11,40 +13,28 @@ use super::path::path_in_expr;
 use super::pattern::pat;
 use super::r#type::type_no_bound;
 
-named!(t1_expr<&str, Expr>, alt!(
+named!(pub t1_expr<&str, Expr>, alt!(
     grouped_expr
   | map!(literal, Expr::Literal) // literal expr
   | tuple_expr
   | array_expr
 ));
 
-named!(t2_expr<&str, Expr>, alt!(
+named!(pub t2_expr<&str, Expr>, alt!(
     map!(path_in_expr, Expr::Path) // Path expr
   | t1_expr
 ));
 
-named!(t3_expr<&str, Expr>, alt!(
-    tuple_idx_expr
-  | field_expr
+// T2 falls through field/tuple idx
+named!(pub t3_expr<&str, Expr>, call!(t3_full));
 
-  | t2_expr
-));
+// T3 falls through call/array idx
+named!(pub t4_expr<&str, Expr>, call!(t4_full));
 
-named!(t4_expr<&str, Expr>, alt!(
-    call_expr
-  | method_call_expr
-  | idx_expr
+// T4 falls through type_cast_expr
+named!(pub t5_expr<&str, Expr>, call!(error_propagation_expr));
 
-  | t3_expr
-));
-
-named!(t5_expr<&str, Expr>, alt!(
-    error_propagation_expr
-
-  | t4_expr
-));
-
-named!(t6_expr<&str, Expr>, alt!(
+named!(pub t6_expr<&str, Expr>, alt!(
     borrow_expr
   | deref_expr
   | neg_expr
@@ -53,26 +43,84 @@ named!(t6_expr<&str, Expr>, alt!(
   | t5_expr
 ));
 
-named!(t7_expr<&str, Expr>, alt!(
-    type_cast_expr
+// T6 falls through type_cast_expr
+named!(pub t7_expr_inner<&str, Expr>, call!(type_cast_expr));
 
-  | t6_expr
-));
+pub fn t7_expr(input: &str) -> IResult<&str, Expr> {
+  println!("Parsing: {}", input);
+  t7_expr_inner(input)
+}
+
+macro_rules! fall_through_expr {
+  ($i:expr, $first:tt, $tail:tt, $mapper:expr) => ({
+    map!(
+      $i,
+      mrws!(tuple!(
+        $first, opt!(complete!($tail))
+      )),
+      |(f, b)| match b {
+        None => f,
+        Some(bc) => $mapper(f, bc),
+      }
+    )
+  })
+}
 
 macro_rules! bin_ltr_expr {
   ($cur:ident, $op_parser:ident, $lower:ident) => {
-    named!($cur<&str, Expr>, alt!(
-        map!(
-          mrws!(tuple!($lower, $op_parser, $cur)),
-          |(l, o, r)| Expr::BinaryOp {
-            lhs: Box::new(l),
-            rhs: Box::new(r),
+    pub fn $cur(input: &str) -> IResult<&str, Expr> {
+      let (sliced, init) = $lower(input)?;
 
-            op: o.into(),
-          }
-        )
-      | $lower
-    ));
+      use nom::{fold_many0};
+
+      fold_many0!(
+        sliced,
+        complete!(mrws!(tuple!($op_parser, $lower))),
+        init,
+        |acc, (op, term)| Expr::BinaryOp {
+          lhs: Box::new(acc),
+          rhs: Box::new(term),
+
+          op: op.into(),
+        }
+      )
+    }
+  }
+}
+
+macro_rules! bin_rtl_expr {
+  ($cur:ident, $op_parser:ident, $lower:ident) => {
+    pub fn $cur(input: &str) -> IResult<&str, Expr> {
+      dbg!(input);
+      let (sliced, init) = $lower(input)?;
+
+      use nom::{fold_many0};
+
+      let (left, terms) = many0!(
+        sliced,
+        complete!(mrws!(tuple!($op_parser, $lower)))
+      )?;
+
+      let ret = match terms.into_iter().rev().fold(None, |acc, (op, term)| {
+        match acc {
+          None => Some((op, term)),
+          Some((cop, dec)) => Some((op, Expr::BinaryOp {
+            op: cop.into(),
+            lhs: Box::new(term),
+            rhs: Box::new(dec),
+          }))
+        }
+      }) {
+        None => init,
+        Some((cop, dec)) => Expr::BinaryOp {
+          op: cop.into(),
+          lhs: Box::new(init),
+          rhs: Box::new(dec),
+        }
+      };
+
+      Ok((left, ret))
+    }
   }
 }
 
@@ -86,10 +134,9 @@ bin_ltr_expr!(logical_t1_expr, logical_op_t1, arith_t6_expr);
 bin_ltr_expr!(logical_t2_expr, logical_op_t2, logical_t1_expr);
 bin_ltr_expr!(logical_t3_expr, logical_op_t3, logical_t2_expr);
 
-named!(t8_expr<&str, Expr>, alt!(
-    compound_assign_expr
-  | logical_t3_expr
-));
+// logical_t3_expr falls through compound_assign_expr
+named!(pub t8_expr<&str, Expr>, call!(compound_assign_expr));
+bin_rtl_expr!(compound_assign_expr, compound_assign, logical_t3_expr);
 
 named!(pub expr_without_block<&str, Expr>, alt!(
     cont_expr
@@ -171,58 +218,95 @@ named!(call_params<&str, Vec<Expr>>, mrws!(terminated!(
   opt!(complete!(tag!(",")))
 )));
 
-named!(call_expr<&str, Expr>, map!(
-  mrws!(tuple!(
+#[derive(Debug)]
+enum T3Args<'a> {
+  TupleIdx(u128),
+  Field(&'a str),
+}
+
+impl<'a> T3Args<'a> {
+  fn finalize(self, base: Expr<'a>) -> Expr<'a> {
+    match self {
+      Self::TupleIdx(idx) => Expr::TupleIndex {
+        owner: Box::new(base),
+        idx,
+      },
+      Self::Field(field) => Expr::Field {
+        owner: Box::new(base),
+        field,
+      }
+    }
+  }
+}
+
+pub fn t3_full(input: &str) -> IResult<&str, Expr> {
+  let (sliced, init) = t2_expr(input)?;
+
+  use nom::{fold_many0};
+
+  fold_many0!(
+    sliced,
+    complete!(mrws!(preceded!(tag!("."), t3_seg))),
+    init,
+    |acc, seg| seg.finalize(acc)
+  )
+}
+
+named!(t3_seg<&str, T3Args>, alt!(
+    complete!(map!(tuple_idx, T3Args::TupleIdx))
+  | complete!(map!(ident, T3Args::Field))
+));
+
+#[derive(Debug)]
+enum T4Args<'a> {
+  ArrayIdx(Box<Expr<'a>>),
+  Call(Option<&'a str>, Vec<Expr<'a>>),
+}
+
+impl<'a> T4Args<'a> {
+  fn finalize(self, base: Expr<'a>) -> Expr<'a> {
+    match self {
+      Self::ArrayIdx(idx) => Expr::ArrayIndex {
+        owner: Box::new(base),
+        idx: idx,
+      },
+      Self::Call(method, params) => Expr::Call {
+        recv: Box::new(base),
+        method,
+        params,
+      }
+    }
+  }
+}
+
+fn t4_full<'a>(input: &'a str) -> IResult<&'a str, Expr<'a>> {
+  fall_through_expr!(
+    input,
     t3_expr,
-    tag!("("),
-    call_params,
-    tag!(")")
-  )),
-  |(r, _, p, _)| Expr::Call {
-    recv: Box::new(r),
-    method: None,
-    params: p,
-  }
-));
+    t4_tail,
+    |b, t: T4Args<'a>| t.finalize(b)
+  )
+}
 
-named!(method_call_expr<&str, Expr>, map!(
-  mrws!(tuple!(
-    t3_expr,
-    tag!("."),
-    ident,
-    tag!("("),
-    call_params,
-    tag!(")")
-  )),
-  |(r, _, m, _, p, _)| Expr::Call {
-    recv: Box::new(r),
-    method: Some(m),
-    params: p,
-  }
-));
-
-named!(tuple_idx_expr<&str, Expr>, map!(
-  mrws!(tuple!(
-    t2_expr,
-    tag!("."),
-    tuple_idx
-  )),
-  |(o, _, i)| Expr::TupleIndex {
-    owner: Box::new(o),
-    idx: i,
-  }
-));
-
-named!(field_expr<&str, Expr>, map!(
-  mrws!(tuple!(
-    t2_expr,
-    tag!("."),
-    ident
-  )),
-  |(o, _, i)| Expr::Field {
-    owner: Box::new(o),
-    field: i,
-  }
+named!(t4_tail<&str, T4Args>, alt!(
+  map!(
+    mrws!(tuple!(
+      opt!(complete!(mrws!(preceded!(
+        tag!("."),
+        ident
+      )))),
+      complete!(tag!("(")),
+      call_params,
+      complete!(tag!(")"))
+    )),
+    |(method, _, params, _)| T4Args::Call(method, params)
+  )
+  |
+  map!(mrws!(delimited!(
+    complete!(tag!("[")),
+    expr,
+    complete!(tag!("]"))
+  )), |e| T4Args::ArrayIdx(Box::new(e)))
 ));
 
 named!(array_expr<&str, Expr>, map!(
@@ -253,19 +337,6 @@ named!(array_expr_inner<&str, Expr>, alt!(
       )),
       |(f, c)| Expr::ArrayFill { filler: Box::new(f), count: Box::new(c) }
     )
-));
-
-named!(idx_expr<&str, Expr>, map!(
-  mrws!(tuple!(
-    t3_expr,
-    tag!("("),
-    expr,
-    tag!(")")
-  )),
-  |(o, _, i, _)| Expr::ArrayIndex {
-    owner: Box::new(o),
-    idx: Box::new(i),
-  }
 ));
 
 named!(closure_expr<&str, Expr>, map!(
@@ -444,10 +515,13 @@ named!(match_expr<&str, Expr>, map!(
   }
 ));
 
-named!(error_propagation_expr<&str, Expr>, map!(mrws!(terminated!(
+named!(error_propagation_expr<&str, Expr>, map!(mrws!(tuple!(
   t4_expr,
-  tag!("!")
-)), |e| Expr::Question(Box::new(e))));
+  opt!(complete!(tag!("?")))
+)), |(e, q)| match q {
+  Some(_) => Expr::Question(Box::new(e)),
+  None => e,
+}));
 
 named!(borrow_expr<&str, Expr>, map!(mrws!(tuple!(
   tag!("&"),
@@ -473,15 +547,22 @@ named!(not_expr<&str, Expr>, map!(mrws!(preceded!(
   t5_expr
 )), |e| Expr::Not(Box::new(e))));
 
-named!(type_cast_expr<&str, Expr>, map!(mrws!(separated_pair!(
-  t6_expr,
-  tag!("as"),
-  type_no_bound
-)), |(e, t)| Expr::Cast {
-  value: Box::new(e),
-  to: t,
-}));
+named!(type_cast_tail<&str, Type>, 
+  mrws!(preceded!(
+    tag!("as"),
+    type_no_bound
+  ))
+);
 
+named!(type_cast_expr<&str, Expr>, fall_through_expr!(
+  t6_expr,
+  type_cast_tail,
+  |e, t| Expr::Cast {
+    value: Box::new(e),
+    to: t,
+  }
+));
+  
 // TODO: split this to confirm assoc
 named!(arith_op_t1<&str, ArithOp>, 
   map!(one_of!("*/%"), |v| ArithOp::from_char(v))
@@ -535,13 +616,3 @@ named!(compound_assign<&str, ArithOp>, terminated!(alt!(
   | arith_op_t5
   | arith_op_t6
 ), tag!("=")));
-
-named!(compound_assign_expr<&str, Expr>, map!(mrws!(tuple!(
-  t8_expr,
-  alt!(map!(compound_assign, Some) | map!(tag!("="), |_| None)),
-  logical_t3_expr
-)), |(l, o, r)| Expr::CompoundAssign {
-  op: o,
-  lhs: Box::new(l),
-  rhs: Box::new(r),
-}));
