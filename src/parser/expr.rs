@@ -1,6 +1,6 @@
 use nom::{
   alt, call, complete, many0, map, named, one_of, opt, separated_nonempty_list, tag, terminated,
-  value, IResult,
+  IResult,
 };
 
 use super::ident::*;
@@ -84,13 +84,11 @@ macro_rules! bin_ltr_expr {
   };
 }
 
-macro_rules! bin_rtl_expr {
+macro_rules! assign_rtl_expr {
   ($cur:ident, $op_parser:ident, $lower:ident) => {
     pub fn $cur(input: &str) -> IResult<&str, Expr> {
       dbg!(input);
       let (sliced, init) = $lower(input)?;
-
-      use nom::fold_many0;
 
       let (left, terms) = many0!(sliced, complete!(mrws!(tuple!($op_parser, $lower))))?;
 
@@ -101,7 +99,7 @@ macro_rules! bin_rtl_expr {
           None => Some((op, term)),
           Some((cop, dec)) => Some((
             op,
-            Expr::BinaryOp {
+            Expr::Assign {
               op: cop.into(),
               lhs: Box::new(term),
               rhs: Box::new(dec),
@@ -109,7 +107,7 @@ macro_rules! bin_rtl_expr {
           )),
         }) {
         None => init,
-        Some((cop, dec)) => Expr::BinaryOp {
+        Some((cop, dec)) => Expr::Assign {
           op: cop.into(),
           lhs: Box::new(init),
           rhs: Box::new(dec),
@@ -133,7 +131,7 @@ bin_ltr_expr!(logical_t3_expr, logical_op_t3, logical_t2_expr);
 
 // logical_t3_expr falls through compound_assign_expr
 named!(pub t8_expr<&str, Expr>, call!(compound_assign_expr));
-bin_rtl_expr!(compound_assign_expr, compound_assign, logical_t3_expr);
+assign_rtl_expr!(compound_assign_expr, compound_assign, logical_t3_expr);
 
 named!(pub expr_without_block<&str, Expr>, alt!(
     cont_expr

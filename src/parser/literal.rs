@@ -1,6 +1,6 @@
 use nom::{
-  alt, char, complete, fold_many0, fold_many1, many_till, map, multi, named, none_of, one_of, opt,
-  preceded, switch, tag, take, tuple, value, IResult,
+  alt, char, complete, fold_many1, many_till, map, multi, named, none_of, one_of, opt, preceded,
+  switch, tag, take, tuple, value, IResult,
 };
 
 use crate::grammar::{IntSuffix, Literal};

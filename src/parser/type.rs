@@ -1,5 +1,6 @@
 use nom::{alt, call, complete, map, named, opt, tag};
 
+use super::expr::expr;
 use super::ident::*;
 use super::literal::*;
 use super::path::*;
@@ -57,11 +58,10 @@ named!(array_type<&str, Type>,
       tag!("["),
       r#type,
       tag!(";"),
-      // TODO: EXPR
-      literal,
+      expr,
       tag!("]")
     )),
-    |(_, t, _, n, _)| SolidType::Array(Box::new(t), 0).into() // TODO: compute length
+    |(_, t, _, n, _)| SolidType::Array(Box::new(t), Box::new(n)).into()
   )
 );
 

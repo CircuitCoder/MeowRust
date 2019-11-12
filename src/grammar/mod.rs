@@ -162,7 +162,7 @@ pub enum Expr<'a> {
     rhs: Box<Expr<'a>>,
   },
 
-  CompoundAssign {
+  Assign {
     op: Option<ArithOp>,
     lhs: Box<Expr<'a>>,
     rhs: Box<Expr<'a>>,

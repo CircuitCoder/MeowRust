@@ -7,7 +7,7 @@ pub enum SolidType<'a> {
   Ident(TypePath<'a>),
   Tuple(Vec<Type<'a>>),
   Ref(bool, Box<Type<'a>>),
-  Array(Box<Type<'a>>, usize),
+  Array(Box<Type<'a>>, Box<Expr<'a>>),
   Slice(Box<Type<'a>>),
 
   BareFunc(FnTypeSpec<'a>),

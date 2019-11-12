@@ -1,5 +1,5 @@
 [package]
-name = "MeowRust"
+name = "meow_rust"
 version = "0.1.0"
 authors = ["Liu Xiaoyi <circuitcoder0@gmail.com>"]
 edition = "2018"

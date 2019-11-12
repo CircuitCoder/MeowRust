@@ -1,4 +1,4 @@
-use nom::{alt, complete, map, named, opt, separated_nonempty_list, tag, IResult};
+use nom::{alt, complete, map, named, opt, separated_nonempty_list, tag};
 use std::collections::HashMap;
 
 use super::ident::*;
