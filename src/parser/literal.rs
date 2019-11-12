@@ -10,6 +10,8 @@ use nom::{
   value,
   complete,
   IResult,
+
+  multi,
 };
 
 use crate::grammar::{Literal, IntSuffix};
@@ -32,6 +34,11 @@ named!(dec_digit<&str, u32>, map!(
 named!(hex_digit<&str, u32>, map!(
   one_of!("0123456789abcdefABCDEF"),
   |c: char| c.to_digit(16).unwrap()
+));
+
+named!(tuple_idx_first<&str, u32>, map!(
+  one_of!("123456789"),
+  |c: char| c.to_digit(10).unwrap()
 ));
 
 named!(quote_escape<&str, char>,
@@ -187,6 +194,18 @@ named!(hex_literal<&str, u128>,
       0, |acc, item| acc * 16 + item as u128)
   )
 );
+
+fn tuple_idx_nonzero(input: &str) -> IResult<&str, u128> {
+  let (rest, first) = tuple_idx_first(input)?;
+
+  multi::fold_many_m_n(1, 128, oct_digit,
+    first as u128, |acc, item| acc * 10 + item as u128)(rest)
+}
+
+named!(pub tuple_idx<&str, u128>, alt!(
+    map!(tag!("0"), |_| 0)
+  | tuple_idx_nonzero
+));
 
 named!(integer_suffix<&str, IntSuffix>,
   alt!(

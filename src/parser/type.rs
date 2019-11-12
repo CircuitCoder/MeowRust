@@ -114,7 +114,7 @@ named!(bare_func<&str, Type>,
 );
 
 named!(
-  type_no_bound<&str, Type>,
+  pub type_no_bound<&str, Type>,
   alt!(
     tuple_type
     | ref_type

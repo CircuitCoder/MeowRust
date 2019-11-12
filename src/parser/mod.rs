@@ -59,5 +59,8 @@ pub mod literal;
 pub mod ident;
 pub mod path;
 pub mod r#type;
+pub mod pattern;
+pub mod stmt;
+pub mod expr;
 
-named!(pub parse<&str, grammar::TypePath>, call!(path::type_path));
+named!(pub parse<&str, grammar::Expr>, call!(expr::expr));

@@ -193,3 +193,5 @@ named!(
     |(p, r)| FnTypeSpec { args: p, ret: Box::new(r.unwrap_or_else(|| UNIT_TYPE)) }
   )
 );
+
+// TODO: qualified
