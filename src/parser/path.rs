@@ -1,12 +1,9 @@
-use nom::{
-  opt, named, tag, map, alt, separated_nonempty_list, complete,
-  IResult
-};
+use nom::{alt, complete, map, named, opt, separated_nonempty_list, tag, IResult};
 use std::collections::HashMap;
 
-use crate::grammar::*;
 use super::ident::*;
 use super::r#type::r#type;
+use crate::grammar::*;
 
 named!(
   simple_path_seg<&str, PathSeg>,

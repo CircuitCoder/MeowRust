@@ -1,6 +1,6 @@
 use crate::grammar;
-use nom::{named, complete, call, IResult};
 use nom::bytes;
+use nom::{call, complete, named, IResult};
 
 // Common
 
@@ -25,7 +25,7 @@ fn till_sep(input: &str) -> IResult<&str, &str> {
 
     return Ok(("", input));
   }
-  
+
   /*
   if SEPARATORS.chars().filter(|c| *c == first_char).count() != 0 {
     return Ok((input, ""));
@@ -55,12 +55,12 @@ macro_rules! mrws {
   })
 }
 
-pub mod literal;
+pub mod expr;
 pub mod ident;
+pub mod literal;
 pub mod path;
-pub mod r#type;
 pub mod pattern;
 pub mod stmt;
-pub mod expr;
+pub mod r#type;
 
 named!(pub parse<&str, grammar::Expr>, call!(expr::expr));

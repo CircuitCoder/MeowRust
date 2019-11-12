@@ -1,21 +1,9 @@
 use nom::{
-  named, switch, take, char, alt, map,
-  tuple, tag,
-  none_of,
-  many_till,
-  preceded,
-  fold_many1,
-  fold_many0,
-  opt,
-  one_of,
-  value,
-  complete,
-  IResult,
-
-  multi,
+  alt, char, complete, fold_many0, fold_many1, many_till, map, multi, named, none_of, one_of, opt,
+  preceded, switch, tag, take, tuple, value, IResult,
 };
 
-use crate::grammar::{Literal, IntSuffix};
+use crate::grammar::{IntSuffix, Literal};
 
 named!(bin_digit<&str, u32>, map!(
   one_of!("01"),
@@ -114,11 +102,11 @@ fn raw_string_content(input: &str) -> IResult<&str, Literal> {
       Some('#') => {
         count += 1;
         pending = &pending[1..];
-      },
+      }
       Some('\"') => {
         pending = &pending[1..];
         break;
-      },
+      }
       _ => return Err(nom::Err::Error((input, nom::error::ErrorKind::Alt))),
     }
   }
@@ -134,21 +122,21 @@ fn raw_string_content(input: &str) -> IResult<&str, Literal> {
       checking = true;
       endstart = curcount;
       endcount = 0;
-      // println!("Reset @ {}", curcount);
+    // println!("Reset @ {}", curcount);
     } else if checking && c == '#' {
       endcount += 1;
       if endcount == count {
         // Doing real job here
         let mut result = Vec::new();
         let mapped = &pending[..endstart];
-        let rest = &pending[(curcount+1)..];
+        let rest = &pending[(curcount + 1)..];
 
         for r in mapped.chars() {
           if r == '\n' {
             if result.last() == Some(&'\\') {
               *result.last_mut().unwrap() = r;
             } else {
-              return Err(nom::Err::Error((input, nom::error::ErrorKind::Alt)))
+              return Err(nom::Err::Error((input, nom::error::ErrorKind::Alt)));
             }
           } else {
             result.push(r);
@@ -164,7 +152,7 @@ fn raw_string_content(input: &str) -> IResult<&str, Literal> {
     curcount += c.len_utf8();
   }
 
-  return Err(nom::Err::Error((input, nom::error::ErrorKind::Alt)))
+  return Err(nom::Err::Error((input, nom::error::ErrorKind::Alt)));
 }
 
 named!(bin_literal<&str, u128>,
@@ -199,8 +187,9 @@ named!(hex_literal<&str, u128>,
 fn tuple_idx_nonzero(input: &str) -> IResult<&str, u128> {
   let (rest, first) = tuple_idx_first(input)?;
 
-  multi::fold_many0(dec_digit,
-    first as u128, |acc, item| acc * 10 + item as u128)(rest)
+  multi::fold_many0(dec_digit, first as u128, |acc, item| {
+    acc * 10 + item as u128
+  })(rest)
 }
 
 named!(pub tuple_idx<&str, u128>, alt!(

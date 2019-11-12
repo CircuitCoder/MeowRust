@@ -1,17 +1,16 @@
 use nom::{
-  named, map, alt, complete, tag, opt, many0, terminated, separated_nonempty_list, value, one_of,
-  call,
-  IResult,
+  alt, call, complete, many0, map, named, one_of, opt, separated_nonempty_list, tag, terminated,
+  value, IResult,
 };
 
-use super::literal::literal;
-use crate::grammar::*;
-use super::stmt::stmt;
 use super::ident::*;
+use super::literal::literal;
 use super::literal::tuple_idx;
 use super::path::path_in_expr;
 use super::pattern::pat;
 use super::r#type::type_no_bound;
+use super::stmt::stmt;
+use crate::grammar::*;
 
 named!(pub t1_expr<&str, Expr>, alt!(
     grouped_expr
@@ -52,18 +51,15 @@ pub fn t7_expr(input: &str) -> IResult<&str, Expr> {
 }
 
 macro_rules! fall_through_expr {
-  ($i:expr, $first:tt, $tail:tt, $mapper:expr) => ({
-    map!(
-      $i,
-      mrws!(tuple!(
-        $first, opt!(complete!($tail))
-      )),
-      |(f, b)| match b {
-        None => f,
-        Some(bc) => $mapper(f, bc),
-      }
-    )
-  })
+  ($i:expr, $first:tt, $tail:tt, $mapper:expr) => {{
+    map!($i, mrws!(tuple!($first, opt!(complete!($tail)))), |(
+      f,
+      b,
+    )| match b {
+      None => f,
+      Some(bc) => $mapper(f, bc),
+    })
+  }};
 }
 
 macro_rules! bin_ltr_expr {
@@ -71,7 +67,7 @@ macro_rules! bin_ltr_expr {
     pub fn $cur(input: &str) -> IResult<&str, Expr> {
       let (sliced, init) = $lower(input)?;
 
-      use nom::{fold_many0};
+      use nom::fold_many0;
 
       fold_many0!(
         sliced,
@@ -85,7 +81,7 @@ macro_rules! bin_ltr_expr {
         }
       )
     }
-  }
+  };
 }
 
 macro_rules! bin_rtl_expr {
@@ -94,34 +90,35 @@ macro_rules! bin_rtl_expr {
       dbg!(input);
       let (sliced, init) = $lower(input)?;
 
-      use nom::{fold_many0};
+      use nom::fold_many0;
 
-      let (left, terms) = many0!(
-        sliced,
-        complete!(mrws!(tuple!($op_parser, $lower)))
-      )?;
+      let (left, terms) = many0!(sliced, complete!(mrws!(tuple!($op_parser, $lower))))?;
 
-      let ret = match terms.into_iter().rev().fold(None, |acc, (op, term)| {
-        match acc {
+      let ret = match terms
+        .into_iter()
+        .rev()
+        .fold(None, |acc, (op, term)| match acc {
           None => Some((op, term)),
-          Some((cop, dec)) => Some((op, Expr::BinaryOp {
-            op: cop.into(),
-            lhs: Box::new(term),
-            rhs: Box::new(dec),
-          }))
-        }
-      }) {
+          Some((cop, dec)) => Some((
+            op,
+            Expr::BinaryOp {
+              op: cop.into(),
+              lhs: Box::new(term),
+              rhs: Box::new(dec),
+            },
+          )),
+        }) {
         None => init,
         Some((cop, dec)) => Expr::BinaryOp {
           op: cop.into(),
           lhs: Box::new(init),
           rhs: Box::new(dec),
-        }
+        },
       };
 
       Ok((left, ret))
     }
-  }
+  };
 }
 
 bin_ltr_expr!(arith_t1_expr, arith_op_t1, t7_expr);
@@ -234,7 +231,7 @@ impl<'a> T3Args<'a> {
       Self::Field(field) => Expr::Field {
         owner: Box::new(base),
         field,
-      }
+      },
     }
   }
 }
@@ -242,7 +239,7 @@ impl<'a> T3Args<'a> {
 pub fn t3_full(input: &str) -> IResult<&str, Expr> {
   let (sliced, init) = t2_expr(input)?;
 
-  use nom::{fold_many0};
+  use nom::fold_many0;
 
   fold_many0!(
     sliced,
@@ -274,18 +271,13 @@ impl<'a> T4Args<'a> {
         recv: Box::new(base),
         method,
         params,
-      }
+      },
     }
   }
 }
 
 fn t4_full<'a>(input: &'a str) -> IResult<&'a str, Expr<'a>> {
-  fall_through_expr!(
-    input,
-    t3_expr,
-    t4_tail,
-    |b, t: T4Args<'a>| t.finalize(b)
-  )
+  fall_through_expr!(input, t3_expr, t4_tail, |b, t: T4Args<'a>| t.finalize(b))
 }
 
 named!(t4_tail<&str, T4Args>, alt!(
@@ -562,7 +554,7 @@ named!(type_cast_expr<&str, Expr>, fall_through_expr!(
     to: t,
   }
 ));
-  
+
 // TODO: split this to confirm assoc
 named!(arith_op_t1<&str, ArithOp>, 
   map!(one_of!("*/%"), |v| ArithOp::from_char(v))

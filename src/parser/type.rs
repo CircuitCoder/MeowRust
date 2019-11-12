@@ -1,11 +1,9 @@
-use nom::{
-  alt, named, map, opt, tag, call, complete,
-};
+use nom::{alt, call, complete, map, named, opt, tag};
 
-use crate::grammar::*;
 use super::ident::*;
 use super::literal::*;
 use super::path::*;
+use crate::grammar::*;
 
 named!(
   pub tuple_type<&str, Type>,

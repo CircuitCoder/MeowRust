@@ -88,17 +88,24 @@ pub enum Stmt<'a> {
 
 #[derive(Debug, Clone)]
 pub enum FlowCtrl<'a> {
-  Ret{ ret: Option<Box<Expr<'a>>> },
-  Break{ label: Option<&'a str>, ret: Option<Box<Expr<'a>>> },
-  Cont{ label: Option<&'a str> },
+  Ret {
+    ret: Option<Box<Expr<'a>>>,
+  },
+  Break {
+    label: Option<&'a str>,
+    ret: Option<Box<Expr<'a>>>,
+  },
+  Cont {
+    label: Option<&'a str>,
+  },
 }
 
 #[derive(Debug, Clone)]
 pub enum Expr<'a> {
   Literal(Literal),
   Block {
-    body: Vec<Stmt<'a>>, 
-    ret: Option<Box<Expr<'a>>>
+    body: Vec<Stmt<'a>>,
+    ret: Option<Box<Expr<'a>>>,
   },
   Tuple(Vec<Expr<'a>>),
   Array(Vec<Expr<'a>>),
@@ -107,8 +114,8 @@ pub enum Expr<'a> {
     count: Box<Expr<'a>>,
   },
   Call {
-    recv: Box<Expr<'a>>, 
-    method: Option<&'a str>, 
+    recv: Box<Expr<'a>>,
+    method: Option<&'a str>,
     params: Vec<Expr<'a>>,
   },
   Field {
@@ -190,8 +197,16 @@ pub enum BinaryOp {
 
 #[derive(Debug, Clone)]
 pub enum ArithOp {
-  Add, Sub, Mul, Div, Mod,
-  BitAnd, BitOr, BitXor, BitLS, BitRS,
+  Add,
+  Sub,
+  Mul,
+  Div,
+  Mod,
+  BitAnd,
+  BitOr,
+  BitXor,
+  BitLS,
+  BitRS,
 }
 
 impl ArithOp {
@@ -224,8 +239,14 @@ impl ArithOp {
 
 #[derive(Debug, Clone)]
 pub enum LogicalOp {
-  And, Or,
-  Eq, Ne, L, G, Le, Ge,
+  And,
+  Or,
+  Eq,
+  Ne,
+  L,
+  G,
+  Le,
+  Ge,
 }
 
 impl LogicalOp {
@@ -271,11 +292,11 @@ pub enum LoopCond<'a> {
 #[derive(Debug, Clone)]
 pub enum IfCond<'a> {
   Let(Pat<'a>, Box<Expr<'a>>),
-  Bool(Box<Expr<'a>>)
+  Bool(Box<Expr<'a>>),
 }
 
 #[derive(Debug, Clone)]
 pub struct MatchArm<'a> {
   pub pats: Vec<Pat<'a>>,
-  pub guard: Option<Box<Expr<'a>>>
+  pub guard: Option<Box<Expr<'a>>>,
 }

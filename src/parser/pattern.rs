@@ -1,10 +1,8 @@
-use nom::{
-  named, tag, map, complete, alt, opt,
-};
+use nom::{alt, complete, map, named, opt, tag};
 
-use crate::grammar::Pat;
-use super::literal::literal;
 use super::ident::ident;
+use super::literal::literal;
+use crate::grammar::Pat;
 
 named!(pub pat<&str, Pat>, alt!(
     literal_pat
@@ -32,4 +30,3 @@ named!(ident_pat<&str, Pat>, map!(
     bounded: b.map(Box::new),
   }
 ));
-

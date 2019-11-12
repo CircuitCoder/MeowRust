@@ -1,7 +1,4 @@
-use nom::{
-  named, take_while, preceded, tag, alt, map,
-  IResult,
-};
+use nom::{alt, map, named, preceded, tag, take_while, IResult};
 
 #[allow(dead_code)]
 pub mod keywords {
@@ -41,12 +38,36 @@ pub mod keywords {
   pub const KW_WHILE: &'static str = "while";
 
   pub const ALL: [&'static str; 30] = [
-    "as", "break", "pub const", "continue", "else",
-    "enum", "false", "fn", "for", "if",
-    "impl", "in", "let", "loop", "match",
-    "mod", "mut", "ref", "return", "self",
-    "Self", "static", "super", "trait", "true",
-    "type", "unsafe", "use", "where", "while",
+    "as",
+    "break",
+    "pub const",
+    "continue",
+    "else",
+    "enum",
+    "false",
+    "fn",
+    "for",
+    "if",
+    "impl",
+    "in",
+    "let",
+    "loop",
+    "match",
+    "mod",
+    "mut",
+    "ref",
+    "return",
+    "self",
+    "Self",
+    "static",
+    "super",
+    "trait",
+    "true",
+    "type",
+    "unsafe",
+    "use",
+    "where",
+    "while",
   ];
 }
 
@@ -63,7 +84,7 @@ fn ident_or_kw(input: &str) -> IResult<&str, &str> {
   if input.starts_with('_') {
     let (left, ident) = unchecked_ident(input)?;
     if ident.len() < 2 {
-      return Err(nom::Err::Error((input, nom::error::ErrorKind::Char)))
+      return Err(nom::Err::Error((input, nom::error::ErrorKind::Char)));
     }
 
     return Ok((left, ident));
@@ -71,7 +92,7 @@ fn ident_or_kw(input: &str) -> IResult<&str, &str> {
 
   match input.chars().next() {
     Some('a'..='z') | Some('A'..='Z') => unchecked_ident(input),
-    _ => Err(nom::Err::Error((input, nom::error::ErrorKind::Alt)))
+    _ => Err(nom::Err::Error((input, nom::error::ErrorKind::Alt))),
   }
 }
 
@@ -83,7 +104,7 @@ fn non_kw_ident(input: &str) -> IResult<&str, &str> {
   let (left, ident) = ident_or_kw(input)?;
   for kw in keywords::ALL.iter() {
     if ident == *kw {
-      return Err(nom::Err::Error((input, nom::error::ErrorKind::Alt)))
+      return Err(nom::Err::Error((input, nom::error::ErrorKind::Alt)));
     }
   }
 
