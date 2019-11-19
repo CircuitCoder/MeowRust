@@ -12,6 +12,8 @@ use super::r#type::type_no_bound;
 use super::stmt::stmt;
 use crate::grammar::*;
 
+use std::iter::Iterator;
+
 named!(pub t1_expr<&str, Expr>, alt!(
     grouped_expr
   | map!(literal, Expr::Literal) // literal expr
@@ -24,14 +26,8 @@ named!(pub t2_expr<&str, Expr>, alt!(
   | t1_expr
 ));
 
-// T2 falls through field/tuple idx
-named!(pub t3_expr<&str, Expr>, call!(t3_full));
-
-// T3 falls through call/array idx
-named!(pub t4_expr<&str, Expr>, call!(t4_full));
-
-// T4 falls through type_cast_expr
-named!(pub t5_expr<&str, Expr>, call!(error_propagation_expr));
+// T2 falls through field/tuple & call/array idx & error_propagation
+named!(pub t345_expr<&str, Expr>, call!(t345_full));
 
 named!(pub t6_expr<&str, Expr>, alt!(
     borrow_expr
@@ -39,7 +35,7 @@ named!(pub t6_expr<&str, Expr>, alt!(
   | neg_expr
   | not_expr
 
-  | t5_expr
+  | t345_expr
 ));
 
 // T6 falls through type_cast_expr
@@ -219,8 +215,46 @@ enum T3Args<'a> {
   Field(&'a str),
 }
 
-impl<'a> T3Args<'a> {
+#[derive(Debug)]
+struct T345Args<'a>(T3Args<'a>, Vec<T45Tail<'a>>);
+
+impl<'a> T345Args<'a> {
   fn finalize(self, base: Expr<'a>) -> Expr<'a> {
+    if let T345Args(T3Args::Field(_), ref t4) = self {
+      if let Some(T45Tail::Call(_)) = t4.iter().next() {
+        // Merge first two
+        let (fname, params, rest) = match self {
+          T345Args(T3Args::Field(fname), t4) => {
+            let mut it = t4.into_iter();
+            let first = it.next();
+
+            (
+              fname,
+              match first {
+                Some(T45Tail::Call(params)) => params,
+                _ => unreachable!()
+              },
+              it
+            )
+          },
+          _ => unreachable!()
+        };
+
+        return rest.fold(Expr::Call {
+          recv: Box::new(base),
+          method: Some(fname),
+          params,
+        }, |acc, c| c.standalone(acc))
+      }
+    }
+
+    let T345Args(t3, t4) = self;
+    t4.into_iter().fold(t3.standalone(base), |acc, c| c.standalone(acc))
+  }
+}
+
+impl<'a> T3Args<'a> {
+  fn standalone(self, base: Expr<'a>) -> Expr<'a> {
     match self {
       Self::TupleIdx(idx) => Expr::TupleIndex {
         owner: Box::new(base),
@@ -234,69 +268,82 @@ impl<'a> T3Args<'a> {
   }
 }
 
-pub fn t3_full(input: &str) -> IResult<&str, Expr> {
-  let (sliced, init) = t2_expr(input)?;
+pub fn t345_full(input: &str) -> IResult<&str, Expr> {
+  let (sliced, init_args) = t345_first(input)?;
+
+  let init = match init_args {
+    (e, tail) => tail.into_iter().fold(e, |acc, t| t.standalone(acc))
+  };
 
   use nom::fold_many0;
 
   fold_many0!(
     sliced,
-    complete!(mrws!(preceded!(tag!("."), t3_seg))),
+    complete!(mrws!(preceded!(tag!("."), t345_seg))),
     init,
     |acc, seg| seg.finalize(acc)
   )
 }
+
+named!(t345_first<&str, (Expr, Vec<T45Tail>)>, mrws!(tuple!(
+  t2_expr,
+  many0!(complete!(t45_tail))
+)));
 
 named!(t3_seg<&str, T3Args>, alt!(
     complete!(map!(tuple_idx, T3Args::TupleIdx))
   | complete!(map!(ident, T3Args::Field))
 ));
 
+named!(t345_seg<&str, T345Args>, map!(
+  mrws!(tuple!(
+    t3_seg,
+    many0!(complete!(t45_tail))
+  )),
+  |(t3, t4)| T345Args(t3, t4)
+));
+
 #[derive(Debug)]
-enum T4Args<'a> {
+enum T45Tail<'a> {
   ArrayIdx(Box<Expr<'a>>),
-  Call(Option<&'a str>, Vec<Expr<'a>>),
+  Call(Vec<Expr<'a>>),
+  Question,
 }
 
-impl<'a> T4Args<'a> {
-  fn finalize(self, base: Expr<'a>) -> Expr<'a> {
+impl<'a> T45Tail<'a> {
+  fn standalone(self, base: Expr<'a>) -> Expr<'a> {
     match self {
       Self::ArrayIdx(idx) => Expr::ArrayIndex {
         owner: Box::new(base),
         idx: idx,
       },
-      Self::Call(method, params) => Expr::Call {
+      Self::Call(params) => Expr::Call {
         recv: Box::new(base),
-        method,
+        method: None,
         params,
       },
+      Self::Question => Expr::Question(Box::new(base)),
     }
   }
 }
 
-fn t4_full<'a>(input: &'a str) -> IResult<&'a str, Expr<'a>> {
-  fall_through_expr!(input, t3_expr, t4_tail, |b, t: T4Args<'a>| t.finalize(b))
-}
-
-named!(t4_tail<&str, T4Args>, alt!(
+named!(t45_tail<&str, T45Tail>, alt!(
   map!(
-    mrws!(tuple!(
-      opt!(complete!(mrws!(preceded!(
-        tag!("."),
-        ident
-      )))),
-      complete!(tag!("(")),
+    mrws!(delimited!(
+      tag!("("),
       call_params,
-      complete!(tag!(")"))
+      tag!(")")
     )),
-    |(method, _, params, _)| T4Args::Call(method, params)
+    T45Tail::Call
   )
   |
   map!(mrws!(delimited!(
     complete!(tag!("[")),
     expr,
     complete!(tag!("]"))
-  )), |e| T4Args::ArrayIdx(Box::new(e)))
+  )), |e| T45Tail::ArrayIdx(Box::new(e)))
+  |
+  map!(complete!(tag!("?")), |_| T45Tail::Question)
 ));
 
 named!(array_expr<&str, Expr>, map!(
@@ -505,18 +552,10 @@ named!(match_expr<&str, Expr>, map!(
   }
 ));
 
-named!(error_propagation_expr<&str, Expr>, map!(mrws!(tuple!(
-  t4_expr,
-  opt!(complete!(tag!("?")))
-)), |(e, q)| match q {
-  Some(_) => Expr::Question(Box::new(e)),
-  None => e,
-}));
-
 named!(borrow_expr<&str, Expr>, map!(mrws!(tuple!(
   tag!("&"),
   opt!(complete!(tag!("mut"))),
-  t5_expr
+  t345_expr
 )), |(_, m, e)| Expr::Borrow {
   cont: Box::new(e),
   is_mut: m.is_some(),
@@ -524,17 +563,17 @@ named!(borrow_expr<&str, Expr>, map!(mrws!(tuple!(
 
 named!(deref_expr<&str, Expr>, map!(mrws!(preceded!(
   tag!("*"),
-  t5_expr
+  t345_expr
 )), |e| Expr::Deref(Box::new(e))));
 
 named!(neg_expr<&str, Expr>, map!(mrws!(preceded!(
   tag!("-"),
-  t5_expr
+  t345_expr
 )), |e| Expr::Neg(Box::new(e))));
 
 named!(not_expr<&str, Expr>, map!(mrws!(preceded!(
   tag!("!"),
-  t5_expr
+  t345_expr
 )), |e| Expr::Not(Box::new(e))));
 
 named!(type_cast_tail<&str, Type>, 

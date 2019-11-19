@@ -28,11 +28,14 @@ named!(module<&str, ItemValue>, map!(
   mrws!(tuple!(
     tag!("mod"),
     ident,
-    opt!(mrws!(delimited!(
-      tag!("{"),
-      mrws!(many0!(item)),
-      tag!("}")
-    )))
+    alt!(
+      map!(mrws!(delimited!(
+        tag!("{"),
+        mrws!(many0!(item)),
+        tag!("}")
+      )), Some)
+      | map!(tag!(";"), |_| None)
+    )
   )),
   |(_, name, inner)| ItemValue::Module(name, inner)
 ));
@@ -49,7 +52,7 @@ named!(use_decl<&str, ItemValue>, mrws!(preceded!(
 named!(type_param<&str, TypeParam>, map!(
   mrws!(tuple!(
     ident,
-    opt!(mrws!(preceded!(tag!("!"), type_param_bounds))),
+    opt!(mrws!(preceded!(tag!(":"), type_param_bounds))),
     opt!(mrws!(preceded!(tag!("="), r#type)))
   )),
   |(name, tb, default)| TypeParam {

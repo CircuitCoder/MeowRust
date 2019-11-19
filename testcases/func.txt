@@ -1,0 +1,5 @@
+fn wtf<E, T: From<E>>(a: E, b: T) -> Box<T>
+  where E: Error + Send + Sync,
+{
+  Box::new(e.into())
+}
