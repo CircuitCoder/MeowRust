@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 
-mod r#type;
+pub mod r#type;
+pub mod attr;
+pub mod item;
 
 pub use r#type::*;
 
@@ -84,6 +86,7 @@ pub enum Stmt<'a> {
   Empty,
   Let(Pat<'a>, Option<Expr<'a>>),
   Expr(Expr<'a>),
+  Item(item::Item<'a>),
 }
 
 #[derive(Debug, Clone)]

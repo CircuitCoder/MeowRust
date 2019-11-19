@@ -61,5 +61,7 @@ pub mod path;
 pub mod pattern;
 pub mod stmt;
 pub mod r#type;
+pub mod attr;
+pub mod item;
 
 named!(pub parse<&str, grammar::Expr>, call!(expr::expr));

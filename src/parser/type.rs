@@ -127,3 +127,9 @@ named!(
 );
 
 named!(pub r#type<&str, Type>, call!(type_no_bound));
+
+// TODO: tailing plus sign?
+named!(pub type_param_bounds<&str, Vec<TypePath>>, mrws!(separated_list!(
+  tag!("+"),
+  type_path
+)));

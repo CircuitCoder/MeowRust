@@ -153,7 +153,7 @@ named!(pub expr_with_block<&str, Expr>, alt!(
 named!(pub expr<&str, Expr>, alt!(expr_without_block | expr_with_block));
 
 /* Expr \w Block*/
-named!(block_expr<&str, Expr>, map!(
+named!(pub block_expr<&str, Expr>, map!(
   mrws!(delimited!(
     tag!("{"),
     opt!(complete!(block_expr_inner)),

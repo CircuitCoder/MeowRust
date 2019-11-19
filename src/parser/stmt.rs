@@ -1,11 +1,13 @@
 use nom::{alt, complete, map, named, opt, tag};
 
 use super::expr::*;
+use super::item::*;
 use super::pattern::pat;
 use crate::grammar::Stmt;
 
 named!(pub stmt<&str, Stmt>, alt!(
-    map!(tag!("!"), |_| Stmt::Empty)
+    map!(tag!(";"), |_| Stmt::Empty)
+  | map!(item, Stmt::Item)
   | let_stmt
   | expr_stmt
 ));
