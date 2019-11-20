@@ -1,6 +1,6 @@
 mod grammar;
 mod parser;
-mod typing;
+//mod typing;
 mod registry;
 #[cfg(test)]
 mod tests;

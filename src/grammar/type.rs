@@ -247,6 +247,7 @@ impl<'a> SolidType<'a> {
       | &SolidType::Str
       | &SolidType::Never
       => true,
+      _ => false,
     }
   }
 }

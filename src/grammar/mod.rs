@@ -312,7 +312,7 @@ pub struct MatchArm<'a> {
   pub guard: Option<Box<Expr<'a>>>,
 }
 
-enum ConstEvalResult {
+pub enum ConstEvalResult {
   U128(u128),
   Invalid,
 }
