@@ -61,7 +61,7 @@ named!(array_type<&str, Type>,
       expr,
       tag!("]")
     )),
-    |(_, t, _, n, _)| SolidType::Array(Box::new(t), Box::new(n)).into()
+    |(_, t, _, n, _)| SolidType::Array(Box::new(t), n.eval().into()).into()
   )
 );
 

@@ -11,3 +11,5 @@ nom = { version = "5.0.1", features = ["regexp_macros"] }
 paw = "1.0.0"
 structopt = { version = "0.3.4", features = ["paw"] }
 failure = "0.1.6"
+im = "13.0.0"
+im-rc = "13.0.0"

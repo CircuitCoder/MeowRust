@@ -372,7 +372,7 @@ named!(array_expr_inner<&str, Expr>, alt!(
         tag!(";"),
         expr
       )),
-      |(f, c)| Expr::ArrayFill { filler: Box::new(f), count: Box::new(c) }
+      |(f, c)| Expr::ArrayFill { filler: Box::new(f), count: c.eval().into() }
     )
 ));
 
@@ -381,11 +381,19 @@ named!(closure_expr<&str, Expr>, map!(
     tag!("|"),
     opt!(complete!(closure_params)),
     tag!("|"),
-    expr
+    alt!(
+      map!(
+        mrws!(tuple!(tag!("->"), type_no_bound, block_expr)),
+        |(_, t, e)| (Some(t), e)
+      )
+      |
+      map!(expr, |e| (None, e))
+    )
   )),
-  |(_, p, _, b)| Expr::Closure {
+  |(_, p, _, (r, e))| Expr::Closure {
     params: p.unwrap_or_else(Vec::new),
-    body: Box::new(b),
+    ret: r,
+    body: Box::new(e),
   }
 ));
 
