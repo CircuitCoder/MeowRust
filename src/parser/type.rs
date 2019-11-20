@@ -45,10 +45,11 @@ named!(ref_type<&str, Type>,
   map!(
     mrws!(tuple!(
       tag!("&"),
+      opt!(lifetime),
       opt!(tag!(keywords::KW_MUT)),
       type_no_bound
     )),
-    |(_, m, t)| SolidType::Ref(m.is_some(), Box::new(t)).into()
+    |(_, lt, m, t)| SolidType::Ref(m.is_some(), lt, Box::new(t)).into()
   )
 );
 

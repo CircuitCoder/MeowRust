@@ -27,3 +27,18 @@ fn test_item() {
         }
     }
 }
+
+#[test]
+fn test_type() {
+    let dir = fs::read_dir("testcases/parsing/type").unwrap();
+    for file in dir {
+        let path = file.unwrap().path();
+        println!("testing {}", path.display());
+        let content = fs::read_to_string(path).unwrap();
+        let parsed = parser::r#type::r#type(&content);
+        println!("{:#?}", parsed);
+        if parsed.is_err() {
+            assert!(parsed.is_ok());
+        }
+    }
+}

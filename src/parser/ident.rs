@@ -1,4 +1,5 @@
 use nom::{alt, map, named, preceded, tag, take_while, IResult};
+use crate::grammar::item::Lifetime;
 
 #[allow(dead_code)]
 pub mod keywords {
@@ -122,3 +123,10 @@ named!(pub lifetime_or_label<&str, &str>,
 named!(pub lifetime_token<&str, &str>,
   alt!(lifetime_or_label | map!(tag!("'_"), |_| "_"))
 );
+
+named!(pub lifetime<&str, Lifetime>, alt!(
+  map!(tag!("'static"), |_| Lifetime::Static)
+  | map!(tag!("'_"), |_| Lifetime::Unnamed)
+  | map!(lifetime_or_label, |name| Lifetime::Named(name))
+));
+

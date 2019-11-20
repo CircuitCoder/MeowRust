@@ -1,4 +1,5 @@
 use super::*;
+use super::item::Lifetime;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum SolidType<'a> {
@@ -12,7 +13,7 @@ pub enum SolidType<'a> {
   // Composite types
   Ident(TypePath<'a>),
   Tuple(Vec<Type<'a>>),
-  Ref(bool, Box<Type<'a>>),
+  Ref(bool, Option<Lifetime<'a>>, Box<Type<'a>>),
   Array(Box<Type<'a>>, Option<u128>),
   Slice(Box<Type<'a>>),
 
@@ -151,8 +152,8 @@ impl<'a> SolidType<'a> {
           (None, TypeOrd::Diverge)
         }
       },
-      &SolidType::Ref(ref is_mut, ref deref) => {
-        if let &SolidType::Ref(ref ano_mut, ref ano_deref) = another {
+      &SolidType::Ref(ref is_mut, ref lifetime, ref deref) => {
+        if let &SolidType::Ref(ref ano_mut, ref ano_lifetime, ref ano_deref) = another {
           if is_mut != ano_mut {
             (None, TypeOrd::Diverge)
           } else {

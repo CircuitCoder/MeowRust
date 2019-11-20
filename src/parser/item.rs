@@ -62,12 +62,6 @@ named!(type_param<&str, TypeParam>, map!(
   }
 ));
 
-named!(lifetime<&str, Lifetime>, alt!(
-  map!(tag!("'static"), |_| Lifetime::Static)
-  | map!(tag!("'_"), |_| Lifetime::Unnamed)
-  | map!(lifetime_or_label, |name| Lifetime::Named(name))
-));
-
 named!(lifetime_bounds<&str, Vec<Lifetime>>,
   mrws!(terminated!(
     mrws!(separated_list!(tag!("+"), lifetime)),

@@ -61,7 +61,7 @@ pub struct TypeParam<'a> {
   pub default: Option<Type<'a>>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Lifetime<'a> {
   Named(&'a str),
   Static,
