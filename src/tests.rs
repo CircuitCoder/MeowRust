@@ -21,6 +21,9 @@ fn test_item() {
         println!("testing {}", path.display());
         let content = fs::read_to_string(path).unwrap();
         let parsed = parser::item::item(&content);
-        assert!(parsed.is_ok());
+        println!("{:#?}", parsed);
+        if parsed.is_err() {
+            assert!(parsed.is_ok());
+        }
     }
 }

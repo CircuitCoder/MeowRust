@@ -1,5 +1,5 @@
 use nom::{
-  named, alt, map, complete, opt, tag, separated_nonempty_list,
+  named, alt, map, map_opt, complete, opt, tag, separated_nonempty_list,
 };
 
 use crate::grammar::item::*;
@@ -62,6 +62,30 @@ named!(type_param<&str, TypeParam>, map!(
   }
 ));
 
+named!(lifetime<&str, Lifetime>, alt!(
+  map!(tag!("'static"), |_| Lifetime::Static)
+  | map!(tag!("'_"), |_| Lifetime::Unnamed)
+  | map!(lifetime_or_label, |name| Lifetime::Named(name))
+));
+
+named!(lifetime_bounds<&str, Vec<Lifetime>>,
+  mrws!(terminated!(
+    mrws!(separated_list!(tag!("+"), lifetime)),
+    opt!(complete!(tag!("+")))
+  ))
+);
+
+named!(lifetime_param<&str, LifetimeParam>, map!(
+  mrws!(tuple!(
+    lifetime_or_label,
+    opt!(mrws!(preceded!(tag!(":"), lifetime_bounds)))
+  )),
+  |(name, lb)| LifetimeParam {
+    name,
+    lifetime_bounds: lb.unwrap_or_else(Vec::new),
+  }
+));
+
 /**
  *  TODO: investigate: the ref says trait bounds can be empty, effectively yields
  *   where T:
@@ -79,12 +103,25 @@ named!(where_clause_item<&str, (Type, Vec<TypePath>)>, mrws!(separated_pair!(
   type_param_bounds
 )));
 
-named!(generics<&str, Vec<TypeParam>>, mrws!(delimited!(
+named!(generics<&str, Vec<GenericParam>>, mrws!(delimited!(
   tag!("<"),
-  mrws!(terminated!(
-    mrws!(separated_list!(tag!(","), type_param)),
+  map_opt!(mrws!(terminated!(
+    separated_list!(tag!(","), alt!(
+      map!(lifetime_param, |p| GenericParam::Lifetime(p))
+      | map!(type_param, |p| GenericParam::Type(p))
+    )),
     opt!(complete!(tag!(",")))
-  )),
+  )), |params: Vec<_>| {
+    let mut found = false;
+    // lifetime params must appear before type params
+    for param in params.iter() {
+      match param {
+        GenericParam::Type(_) => found = true,
+        GenericParam::Lifetime(_) => if found { return None; },
+      }
+    }
+    Some(params)
+  }),
   tag!(">")
 )));
 

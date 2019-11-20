@@ -48,7 +48,7 @@ pub struct Func<'a> {
   pub params: Vec<(Pat<'a>, Type<'a>)>,
   pub ret: Type<'a>,
 
-  pub generics: Vec<TypeParam<'a>>,
+  pub generics: Vec<GenericParam<'a>>,
   pub r#where: Vec<(Type<'a>, Vec<TypePath<'a>>)>,
 
   pub body: Expr<'a>, // Asserts to be an block expression
@@ -62,10 +62,29 @@ pub struct TypeParam<'a> {
 }
 
 #[derive(Debug, Clone)]
+pub enum Lifetime<'a> {
+  Named(&'a str),
+  Static,
+  Unnamed,
+}
+
+#[derive(Debug, Clone)]
+pub struct LifetimeParam<'a> {
+    pub name: &'a str,
+    pub lifetime_bounds: Vec<Lifetime<'a>>,
+}
+
+#[derive(Debug, Clone)]
+pub enum GenericParam<'a> {
+  Lifetime(LifetimeParam<'a>),
+  Type(TypeParam<'a>),
+}
+
+#[derive(Debug, Clone)]
 pub struct TypeAlias<'a> {
   pub name: &'a str,
 
-  pub generics: Vec<TypeParam<'a>>,
+  pub generics: Vec<GenericParam<'a>>,
   pub r#where: Vec<(Type<'a>, Vec<TypePath<'a>>)>,
 
   pub value: Type<'a>,
