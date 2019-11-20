@@ -2,6 +2,8 @@ mod grammar;
 mod parser;
 mod typing;
 mod registry;
+#[cfg(test)]
+mod tests;
 
 use failure::Error;
 use std::fs::File;
